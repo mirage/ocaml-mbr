@@ -44,6 +44,8 @@ module Partition : sig
     sectors: int32;
   }
 
+  val make: ?active:bool -> ?ty:int -> int32 -> int32 -> t
+
   val unmarshal: Cstruct.t -> (t, string) result
 end
 
@@ -57,11 +59,15 @@ type t = {
   partitions: Partition.t list;
 }
 
+val make: Partition.t list -> t
+
+val marshal: Cstruct.t -> t -> unit
+
 val unmarshal: Cstruct.t -> (t, string) result
 
 val sizeof: int
 
-val default_partition_start: int64
+val default_partition_start: int32
 (** default sector offset for first partition *)
 
 (* {1} Dynamically-typed query interface *)

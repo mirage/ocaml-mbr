@@ -30,4 +30,4 @@ let complete op fd buffer =
   else return ()
 
 let really_read = complete Lwt_bytes.read
-
+let really_write = complete Lwt_bytes.write

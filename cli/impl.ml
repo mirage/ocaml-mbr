@@ -44,3 +44,22 @@ let info common filename =
   with Failure x ->
     Printf.fprintf stderr "Error: %s\n%!" x;
     exit 1
+
+let write common filename =
+  try
+    let filename = require "filename" filename in
+    let t =
+      let mbr = Cstruct.create Mbr.sizeof in
+      Lwt_unix.LargeFile.stat filename >>= fun st ->
+      let total_bytes = st.Lwt_unix.LargeFile.st_size in
+      let total_sectors = Int64.(to_int32 (div total_bytes 512L)) in
+      let partition_length = Int32.sub total_sectors Mbr.default_partition_start in
+      Mbr.marshal mbr (Mbr.make [Mbr.Partition.make ~active:true ~ty:6 Mbr.default_partition_start partition_length]);
+      Lwt_unix.openfile filename [ Lwt_unix.O_WRONLY ] 0x0 >>= fun fd ->
+      Mbr_lwt.really_write fd mbr >>= fun () ->
+      Lwt_unix.close fd in
+    Lwt_main.run t;
+    `Ok ()
+  with Failure x ->
+    Printf.fprintf stderr "Error: %s\n%!" x;
+    exit 1

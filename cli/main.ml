@@ -40,17 +40,27 @@ let common_options_t =
     Arg.(last & vflag_all [false] [verbose]) in 
   Term.(pure Common.make $ debug $ verb)
 
+let filename =
+  let doc = Printf.sprintf "Path to the file or device containing the mbr." in
+  Arg.(value & pos 0 (some file) None & info [] ~doc)
+
 let info_cmd =
   let doc = "display general information about a master boot record" in
   let man = [
     `S "DESCRIPTION";
     `P "Display general information about a master boot record.";
   ] @ help in
-  let filename =
-    let doc = Printf.sprintf "Path to the file or device containing the mbr." in
-    Arg.(value & pos 0 (some file) None & info [] ~doc) in
   Term.(ret(pure Impl.info $ common_options_t $ filename)),
   Term.info "info" ~sdocs:_common_options ~doc ~man
+
+let write_cmd =
+  let doc = "write an MBR with a single big partition" in
+  let man = [
+    `S "DESCRIPTION";
+    `P "Write a simple MBR containing a single big partition.";
+  ] @ help in
+  Term.(ret(pure Impl.write $ common_options_t $ filename)),
+  Term.info "write" ~sdocs:_common_options ~doc ~man
 
 let default_cmd = 
   let doc = "manipulate master boot records" in
@@ -58,7 +68,7 @@ let default_cmd =
   Term.(ret (pure (fun _ -> `Help (`Pager, None)) $ common_options_t)),
   Term.info "mbr-tool" ~version:"1.0.0" ~sdocs:_common_options ~doc ~man
        
-let cmds = [info_cmd]
+let cmds = [info_cmd; write_cmd]
 
 let _ =
   match Term.eval_choice default_cmd cmds with 

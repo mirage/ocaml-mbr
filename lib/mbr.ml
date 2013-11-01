@@ -79,6 +79,14 @@ module Partition = struct
     sectors: int32;
   }
 
+  let make ?(active=false) ?(ty=6) first_absolute_sector_lba sectors =
+    let first_absolute_sector_chs = { Geometry.cylinders = 0; heads = 0; sectors = 0; } in
+    let last_absolute_sector_chs = first_absolute_sector_chs in
+    { active; first_absolute_sector_chs; ty;
+      last_absolute_sector_chs;
+      first_absolute_sector_lba;
+      sectors }
+
   cstruct part {
     uint8_t status;
     uint8_t first_absolute_sector_chs[3];
@@ -90,6 +98,8 @@ module Partition = struct
   } as little_endian
 
   let _ = assert (sizeof_part = 16)
+
+  let sizeof = sizeof_part
 
   let unmarshal (buf: Cstruct.t) : (t, string) result =
     ( if Cstruct.len buf < sizeof_part
@@ -104,6 +114,12 @@ module Partition = struct
     return { active; first_absolute_sector_chs; ty;
       last_absolute_sector_chs; first_absolute_sector_lba;
       sectors }
+
+  let marshal (buf: Cstruct.t) t =
+    set_part_status buf (if t.active then 0x80 else 0);
+    set_part_ty buf t.ty;
+    set_part_first_absolute_sector_lba buf t.first_absolute_sector_lba;
+    set_part_sectors buf t.sectors
 
   let _active = "active"
   let _first_absolute_sector_chs = "first-absolute-sector-chs"
@@ -144,6 +160,17 @@ type t = {
   partitions: Partition.t list;
 }
 
+let make partitions =
+  let bootstrap_code = Cstruct.create 218, Cstruct.create 216 in
+  let original_physical_drive = 0 in
+  let seconds = 0 in
+  let minutes = 0 in
+  let hours = 0 in
+  let disk_signature = 0l in
+  { bootstrap_code; original_physical_drive;
+    seconds; minutes; hours; disk_signature;
+    partitions }
+
 (* "modern standard" MBR from wikipedia: *)
 cstruct mbr {
   uint8_t bootstrap_code1[218];
@@ -155,10 +182,7 @@ cstruct mbr {
   uint8_t bootstrap_code2[216];
   uint32_t disk_signature;
   uint8_t _zeroes_2[2];
-  uint8_t partition1[16];
-  uint8_t partition2[16];
-  uint8_t partition3[16];
-  uint8_t partition4[16];
+  uint8_t partitions[64];
   uint8_t signature1; (* 0x55 *)
   uint8_t signature2  (* 0xaa *)
 } as little_endian
@@ -180,19 +204,36 @@ let unmarshal (buf: Cstruct.t) : (t, string) result =
     let minutes = get_mbr_minutes buf in
     let hours = get_mbr_hours buf in
     let disk_signature = get_mbr_disk_signature buf in
-    Partition.unmarshal (get_mbr_partition1 buf) >>= fun p1 ->
-    Partition.unmarshal (get_mbr_partition2 buf) >>= fun p2 ->
-    Partition.unmarshal (get_mbr_partition3 buf) >>= fun p3 ->
-    Partition.unmarshal (get_mbr_partition4 buf) >>= fun p4 ->
+    let partitions = get_mbr_partitions buf in
+    Partition.unmarshal (Cstruct.shift partitions (0 * Partition.sizeof)) >>= fun p1 ->
+    Partition.unmarshal (Cstruct.shift partitions (1 * Partition.sizeof)) >>= fun p2 ->
+    Partition.unmarshal (Cstruct.shift partitions (2 * Partition.sizeof)) >>= fun p3 ->
+    Partition.unmarshal (Cstruct.shift partitions (3 * Partition.sizeof)) >>= fun p4 ->
     let partitions = [ p1; p2; p3; p4 ] in
     return { bootstrap_code;
       original_physical_drive; seconds; minutes; hours;
       disk_signature;
       partitions }
 
+let marshal (buf: Cstruct.t) t =
+  set_mbr_bootstrap_code1 (Cstruct.to_string (fst t.bootstrap_code)) 0 buf;
+  set_mbr_bootstrap_code2 (Cstruct.to_string (snd t.bootstrap_code)) 0 buf;
+  set_mbr_original_physical_drive buf t.original_physical_drive;
+  set_mbr_seconds buf t.seconds;
+  set_mbr_minutes buf t.minutes;
+  set_mbr_hours buf t.hours;
+  set_mbr_disk_signature buf t.disk_signature;
+  let partitions = get_mbr_partitions buf in
+  let _ = List.fold_left (fun buf p ->
+    Partition.marshal buf p;
+    Cstruct.shift buf Partition.sizeof
+  ) partitions t.partitions in
+  set_mbr_signature1 buf 0x55;
+  set_mbr_signature2 buf 0xaa
+
 let sizeof = sizeof_mbr
 
-let default_partition_start = 2048L
+let default_partition_start = 2048l
 
 let _bootstrap_code = "bootstrap-code"
 let _original_physical_drive = "original-physical-drive"
