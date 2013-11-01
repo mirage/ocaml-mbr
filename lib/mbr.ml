@@ -219,8 +219,10 @@ let get t key =
   then Some (Int32.to_string t.disk_signature)
   else begin match Re_str.split slash key with
    | [ p; i; k ] when p = _partition ->
-     try
-       Partition.get (List.nth t.partitions (int_of_string i)) k
-     with _ -> None
+     begin
+       try
+         Partition.get (List.nth t.partitions (int_of_string i)) k
+       with _ -> None
+     end
    | _ -> None
   end
