@@ -17,3 +17,4 @@
 "lib/mbr.cmxs": use_mbr
 <lib/*.ml{,i}>: pkg_cstruct
 # OASIS_STOP
+<lib/*>: syntax_camlp4o, pkg_cstruct.syntax
