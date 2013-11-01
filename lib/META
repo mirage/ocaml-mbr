@@ -1,12 +1,22 @@
 # OASIS_START
-# DO NOT EDIT (digest: b06f7792f9264855aba0ac3b2c7ace38)
+# DO NOT EDIT (digest: 7116af57da2d7446eef73d18415b7aa6)
 version = "0.0.1"
 description = "Manipulate MBR"
-requires = "cstruct"
+requires = "cstruct re.str"
 archive(byte) = "mbr.cma"
 archive(byte, plugin) = "mbr.cma"
 archive(native) = "mbr.cmxa"
 archive(native, plugin) = "mbr.cmxs"
 exists_if = "mbr.cma"
+package "lwt" (
+ version = "0.0.1"
+ description = "Manipulate MBR"
+ requires = "lwt lwt.unix cstruct.lwt oUnit mbr-format"
+ archive(byte) = "mbr_lwt.cma"
+ archive(byte, plugin) = "mbr_lwt.cma"
+ archive(native) = "mbr_lwt.cmxa"
+ archive(native, plugin) = "mbr_lwt.cmxs"
+ exists_if = "mbr_lwt.cma"
+)
 # OASIS_STOP
 

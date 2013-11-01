@@ -12,5 +12,21 @@ Library mbr
   Path:               lib
   Findlibname:        mbr-format
   Modules:            Mbr
-  BuildDepends:       cstruct
+  BuildDepends:       cstruct, re.str
 
+Library mbr_lwt
+  CompiledObject:     best
+  Path:               lib
+  Findlibname:        lwt
+  Findlibparent:      mbr
+  Modules:            Mbr_lwt
+  BuildDepends:       lwt, lwt.unix, cstruct.lwt, oUnit, mbr-format
+
+Executable mbr_tool
+  CompiledObject:     best
+  Path:               cli
+  MainIs:             main.ml
+  Custom:             true
+  Install:            false
+  BuildDepends:       lwt, lwt.unix, mbr-format, mbr-format.lwt, cmdliner
+ 

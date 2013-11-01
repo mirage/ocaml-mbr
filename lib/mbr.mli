@@ -51,3 +51,10 @@ type t = {
 
 val unmarshal: Cstruct.t -> (t, string) result
 
+val sizeof: int
+
+(* {1} Dynamically-typed query interface *)
+
+val all: string list
+
+val get: t -> string -> string option
