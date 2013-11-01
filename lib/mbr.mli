@@ -24,6 +24,14 @@ module Geometry : sig
   }
 
   val unmarshal: Cstruct.t -> (t, string) result
+
+  val of_lba_size: int64 -> (t, string) result
+  (** For LBA addressable disks of < 8GiB, synthesise a plausible
+      geometry given a total number of sectors *)
+
+  val to_chs: t -> int64 -> t
+  (** Given a geometry and an LBA offset, compute the CHS of the
+      offset *)
 end
 
 module Partition : sig

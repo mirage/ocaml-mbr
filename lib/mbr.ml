@@ -23,6 +23,10 @@ let ( >>= ) x f = match x with
 let return x = Ok x
 let fail y = Error y
 
+let kib = 1024L
+let mib = Int64.mul kib 1024L
+let gib = Int64.mul mib 1024L
+
 module Geometry = struct
   type t = {
     cylinders : int;
@@ -42,6 +46,27 @@ module Geometry = struct
     let sectors = y land 0b0111111 in
     let cylinders = (y lsl 2) lor z in
     return { cylinders; heads; sectors }
+
+  let of_lba_size x =
+    let sectors = 63 in
+    ( if x < Int64.(mul 504L mib)
+      then return 16
+      else if x < Int64.(mul 1008L mib)
+      then return 64
+      else if x < Int64.(mul 4032L mib)
+      then return 128
+      else if x < Int64.(add (mul 8032L mib) (mul 512L kib))
+      then return 255
+      else fail (Printf.sprintf "sector count exceeds LBA max: %Ld" x) ) >>= fun heads ->
+    let cylinders = Int64.(to_int (div (div x (of_int sectors)) (of_int heads))) in
+    return { cylinders; heads; sectors }
+
+  let to_chs g x =
+    let open Int64 in
+    let cylinders = to_int (div x (mul (of_int g.sectors) (of_int g.heads))) in
+    let heads = to_int (rem (div x (of_int g.sectors)) (of_int g.heads)) in
+    let sectors = to_int (succ (rem x (of_int g.sectors))) in
+    { cylinders; heads; sectors }
 end
 
 module Partition = struct
