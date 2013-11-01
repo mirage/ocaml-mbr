@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: b06f7792f9264855aba0ac3b2c7ace38)
+version = "0.0.1"
+description = "Manipulate MBR"
+requires = "cstruct"
+archive(byte) = "mbr.cma"
+archive(byte, plugin) = "mbr.cma"
+archive(native) = "mbr.cmxa"
+archive(native, plugin) = "mbr.cmxs"
+exists_if = "mbr.cma"
+# OASIS_STOP
+
