@@ -1,0 +1,16 @@
+OASISFormat: 0.3
+Name:        mbr-format
+Version:     0.0.1
+Synopsis:    Manipulate MBR
+Authors:     David Scott
+License:     LGPL-2.1 with OCaml linking exception
+Plugins:     META (0.3)
+BuildTools:  ocamlbuild
+
+Library mbr
+  CompiledObject:     best
+  Path:               lib
+  Findlibname:        mbr-format
+  Modules:            Mbr
+  BuildDepends:       cstruct
+
