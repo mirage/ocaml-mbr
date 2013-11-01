@@ -192,6 +192,8 @@ let unmarshal (buf: Cstruct.t) : (t, string) result =
 
 let sizeof = sizeof_mbr
 
+let default_partition_start = 2048L
+
 let _bootstrap_code = "bootstrap-code"
 let _original_physical_drive = "original-physical-drive"
 let _timestamp = "timestamp"

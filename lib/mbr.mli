@@ -61,6 +61,9 @@ val unmarshal: Cstruct.t -> (t, string) result
 
 val sizeof: int
 
+val default_partition_start: int64
+(** default sector offset for first partition *)
+
 (* {1} Dynamically-typed query interface *)
 
 val all: string list
