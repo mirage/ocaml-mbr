@@ -18,7 +18,12 @@ module Make(B: V1_LWT.BLOCK) = struct
   type page_aligned_buffer = B.page_aligned_buffer
   type 'a io = 'a B.io
   type error = B.error
-  type info = B.info
+
+  type info = {
+    read_write : bool;
+    sector_size : int;
+    size_sectors : int64;
+  }
 
   type id = {
     b: B.t;
@@ -30,7 +35,11 @@ module Make(B: V1_LWT.BLOCK) = struct
 
   let get_info t =
     B.get_info t.b >>= fun info ->
-    return { info with B.size_sectors = t.length_sectors }
+    return {
+      read_write = info.B.read_write;
+      sector_size = info.B.sector_size;
+      size_sectors = info.B.size_sectors;
+    }
 
   let id t = t
 

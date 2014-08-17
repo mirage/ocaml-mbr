@@ -17,8 +17,6 @@ module Make(B: V1_LWT.BLOCK) : sig
     start_sector: int64;
     length_sectors: int64;
   }
-
   include V1_LWT.BLOCK
     with type id := id
-    and type info := B.info
 end
