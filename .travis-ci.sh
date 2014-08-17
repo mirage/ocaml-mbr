@@ -1,5 +1,5 @@
 # OPAM packages needed to build tests.
-OPAM_PACKAGES="cstruct ounit lwt cstruct cmdliner re mirage-types"
+OPAM_PACKAGES="cstruct ounit lwt cstruct cmdliner re mirage-types ipaddr"
 
 
 case "$OCAML_VERSION,$OPAM_VERSION" in
