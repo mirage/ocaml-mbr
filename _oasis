@@ -22,6 +22,14 @@ Library mbr_lwt
   Modules:            Mbr_lwt
   BuildDepends:       lwt, lwt.unix, cstruct.lwt, oUnit, mbr-format
 
+Library mbr_mirage
+  CompiledObject:     best
+  Path:               lib
+  Findlibname:        mirage
+  Findlibparent:      mbr
+  Modules:            Mbr_partition
+  BuildDepends:       mirage-types.lwt, mbr-format
+
 Executable mbr_tool
   CompiledObject:     best
   Path:               cli
