@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 7116af57da2d7446eef73d18415b7aa6)
+# DO NOT EDIT (digest: 8498b8b1c43505627a1e698b3cdb7fc8)
 version = "0.0.1"
 description = "Manipulate MBR"
 requires = "cstruct re.str"
@@ -8,6 +8,17 @@ archive(byte, plugin) = "mbr.cma"
 archive(native) = "mbr.cmxa"
 archive(native, plugin) = "mbr.cmxs"
 exists_if = "mbr.cma"
+package "mirage" (
+ version = "0.0.1"
+ description = "Manipulate MBR"
+ requires = "mirage-types.lwt mbr-format"
+ archive(byte) = "mbr_mirage.cma"
+ archive(byte, plugin) = "mbr_mirage.cma"
+ archive(native) = "mbr_mirage.cmxa"
+ archive(native, plugin) = "mbr_mirage.cmxs"
+ exists_if = "mbr_mirage.cma"
+)
+
 package "lwt" (
  version = "0.0.1"
  description = "Manipulate MBR"
