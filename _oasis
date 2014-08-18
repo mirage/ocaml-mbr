@@ -3,7 +3,7 @@ Name:        mbr-format
 Version:     0.0.1
 Synopsis:    Manipulate MBR
 Authors:     David Scott
-License:     LGPL-2.1 with OCaml linking exception
+License:     ISC
 Plugins:     META (0.3)
 BuildTools:  ocamlbuild
 
