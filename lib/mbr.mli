@@ -14,9 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type ('a, 'b) result =
-  | Ok of 'a
-  | Error of 'b
+type ('a, 'b) result = [
+  | `Ok of 'a
+  | `Error of 'b
+]
 
 module Geometry : sig
   type t = {

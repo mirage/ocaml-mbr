@@ -14,16 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type ('a, 'b) result =
-  | Ok of 'a
-  | Error of 'b
+type ('a, 'b) result = [
+  | `Ok of 'a
+  | `Error of 'b
+]
 
 let ( >>= ) x f = match x with
-  | Error y -> Error y
-  | Ok z -> f z
+  | `Error y -> `Error y
+  | `Ok z -> f z
 
-let return x = Ok x
-let fail y = Error y
+let return x = `Ok x
+let fail y = `Error y
 
 let kib = 1024L
 let mib = Int64.mul kib 1024L

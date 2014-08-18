@@ -30,10 +30,10 @@ let info common filename =
       Lwt_unix.openfile filename [ Lwt_unix.O_RDONLY ] 0o0 >>= fun fd ->
       Mbr_lwt.really_read fd mbr >>= fun () ->
       let mbr = match Mbr.unmarshal mbr with
-      | Mbr.Error reason ->
+      | `Error reason ->
         Printf.fprintf stderr "Failed to unmarshal MBR: %s\n%!" reason;
         exit 1
-      | Mbr.Ok x -> x in
+      | `Ok x -> x in
       let all = List.map (fun f ->
         match Mbr.get mbr f with
         | Some v -> [ f; v ]
