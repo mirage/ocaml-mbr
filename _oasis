@@ -38,3 +38,13 @@ Executable mbr_tool
   Install:            false
   BuildDepends:       lwt, lwt.unix, mbr-format, mbr-format.lwt, cmdliner
  
+Executable "test"
+  CompiledObject:     best
+  Path:               lib_test
+  MainIs: 	      test.ml
+  Build$:	      flag(tests)
+  Install:	      false
+  BuildDepends:	      oUnit, mbr-format.mirage, lwt, lwt.unix
+
+Test "test"
+  Command:	$test
