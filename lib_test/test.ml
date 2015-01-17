@@ -59,7 +59,11 @@ let mbr_partition () =
 
     Partition.read part1 (1L) [Cstruct.create (disk_info.Fake_block.sector_size + 1)] >>= function
     | `Ok () -> assert_failure "Out-of-range read allowed!";
-    | `Error msg -> assert_equal_str "read 1 3 out of range" (Fake_block.error_message msg);
+    | `Error msg -> assert_equal_str "read 1+2 out of range" (Fake_block.error_message msg);
+
+    Partition.read part1 (Int64.max_int) [buffer] >>= function
+    | `Ok () -> assert_failure "Out-of-range read allowed!";
+    | `Error msg -> assert_equal_str "read 9223372036854775807+1 out of range" (Fake_block.error_message msg);
 
     Fake_block.read disk 0L [buffer] >>|= fun () -> Cstruct.sub buffer 0 7 |> Cstruct.to_string |> assert_equal_str "sector0";
     Fake_block.read disk 1L [buffer] >>|= fun () -> Cstruct.sub buffer 0 7 |> Cstruct.to_string |> assert_equal_str "sector1";

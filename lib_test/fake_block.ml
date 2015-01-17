@@ -41,13 +41,18 @@ type info = {
   size_sectors: int64; (** Total sectors per device *)
 }
 
+let safe_of_int64 i64 =
+  let i = Int64.to_int i64 in
+  assert (Int64.of_int i = i64);
+  i
+
 let write device sector_start buffers =
   let rec loop dstoff = function
     | [] -> ()
     | x :: xs ->
         Cstruct.blit x 0 device dstoff (Cstruct.len x);
         loop (dstoff + (Cstruct.len x)) xs in
-  loop (Int64.to_int sector_start * sector_size) buffers;
+  loop (safe_of_int64 sector_start * sector_size) buffers;
   `Ok () |> return
 
 let read device sector_start buffers =
@@ -56,7 +61,7 @@ let read device sector_start buffers =
     | x :: xs ->
         Cstruct.blit device dstoff x 0 (Cstruct.len x);
         loop (dstoff + (Cstruct.len x)) xs in
-  loop (Int64.to_int sector_start * sector_size) buffers;
+  loop (safe_of_int64 sector_start * sector_size) buffers;
   `Ok () |> return
 
 let info = {
@@ -65,7 +70,7 @@ let info = {
   size_sectors = 64L;
 }
 
-let size = info.sector_size * Int64.to_int info.size_sectors
+let size = info.sector_size * safe_of_int64 info.size_sectors
 
 let get_info _device = return info
 
