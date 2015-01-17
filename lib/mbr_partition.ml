@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+let (--) = Int64.sub
+
 module Make(B: V1_LWT.BLOCK) = struct
   open Lwt
 
@@ -65,9 +67,9 @@ module Make(B: V1_LWT.BLOCK) = struct
       Int64.(add (of_int ((len + t.sec_size - 1) / t.sec_size)) (length t bs))
 
   let adjust_start name op t start_sector buffers =
-    let following_sector = Int64.add start_sector (length t buffers) in
-    if start_sector < 0L || following_sector > t.id.length_sectors
-    then return (`Error (`Unknown (Printf.sprintf "%s %Ld %Ld out of range" name start_sector following_sector)))
+    let buffers_len_sectors = length t buffers in
+    if start_sector < 0L || start_sector > t.id.length_sectors -- buffers_len_sectors
+    then return (`Error (`Unknown (Printf.sprintf "%s %Ld+%Ld out of range" name start_sector buffers_len_sectors)))
     else op t.id.b (Int64.add start_sector t.id.start_sector) buffers
     
   let read = adjust_start "read" B.read
