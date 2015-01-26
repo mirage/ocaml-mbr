@@ -21,4 +21,5 @@ module Make(B: V1_LWT.BLOCK) : sig
   }
   include V1_LWT.BLOCK
     with type id := id
+  val connect : id -> [`Ok of t | `Error of error] io
 end
