@@ -1,0 +1,24 @@
+opam-version: "1.2"
+maintainer:   "dave.scott@eu.citrix.com"
+authors:      "dave.scott@eu.citrix.com"
+homepage:     "https://github.com/mirage/ocaml-mbr"
+bug-reports:  "https://github.com/mirage/ocaml-mbr/issues"
+dev-repo:     "https://github.com/mirage/ocaml-mbr.git"
+
+build: [make]
+build-test: [make "test"]
+install: [make "install" "BINDIR=%{bin}%"]
+remove: [make "uninstall" "BINDIR=%{bin}%"]
+depends: [
+  "ocamlfind"
+  "lwt"
+  "cstruct"
+  "ounit"
+  "re"
+  "mirage-types"
+  "ipaddr"
+  "io-page"
+  "cmdliner"
+  "ounit" {test}
+]
+available: [ocaml-version >= "4.00.0"]
