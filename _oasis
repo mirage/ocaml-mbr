@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        mbr-format
-Version:     0.2
+Version:     0.3
 Synopsis:    Manipulate MBR
 Authors:     David Scott
 License:     ISC
