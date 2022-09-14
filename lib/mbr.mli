@@ -59,6 +59,13 @@ module Partition : sig
   }
   (** a primary partition within the partition table *)
 
+  val sector_start: t -> int64
+  (** [sector_start t] is the int64 representation of
+      [t.first_absolute_sector_lba]. *)
+
+  val size_sectors: t -> int64
+  (** [size_sectors t] is the int64 representation of [t.sectors]. *)
+
   val make: ?active:bool -> ?ty:int -> int32 -> int32 -> t
   (** [make ?active ?ty start length] creates a partition starting
       at sector [start] and with length [length] sectors. If the
@@ -66,6 +73,11 @@ module Partition : sig
       as active/bootable. If partition type [ty] is given then
       this will determine the advertised filesystem type, by default
       this is set to 6 (FAT16) *)
+
+  val make': ?active:bool -> ?ty:int -> int64 -> int64 -> (t, string) result
+  (** [make' ?active ?ty sector_start size_sectors] is [make ?active ?ty
+      (Int64.to_int32 sector_start) (Int64.to_int32 size_sectors)] when both
+      [sector_start] and [size_sectors] fit in int32. Otherwise [Error _]. *)
 
   val unmarshal: Cstruct.t -> (t, string) result
 end

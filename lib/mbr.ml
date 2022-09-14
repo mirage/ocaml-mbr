@@ -70,6 +70,12 @@ module Partition = struct
     sectors: int32;
   }
 
+  let sector_start t =
+    Int64.(logand (of_int32 t.first_absolute_sector_lba) 0xFFFF_FFFFL)
+
+  let size_sectors t =
+    Int64.(logand (of_int32 t.sectors) 0xFFFF_FFFFL)
+
   let make ?(active=false) ?(ty=6) first_absolute_sector_lba sectors =
     let first_absolute_sector_chs = { Geometry.cylinders = 0; heads = 0; sectors = 0; } in
     let last_absolute_sector_chs = first_absolute_sector_chs in
@@ -77,6 +83,13 @@ module Partition = struct
       last_absolute_sector_chs;
       first_absolute_sector_lba;
       sectors }
+
+  let make' ?active ?ty sector_start size_sectors =
+    if Int64.(logand sector_start 0xFFFF_FFFFL = sector_start &&
+              logand size_sectors 0xFFFF_FFFFL = size_sectors) then
+      Ok (make ?active ?ty (Int64.to_int32 sector_start) (Int64.to_int32 size_sectors))
+    else
+      Error "partition parameters do not fit in int32"
 
   [%%cstruct
     type part = {
