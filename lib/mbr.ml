@@ -27,8 +27,6 @@ module Geometry = struct
     sectors : int;
   }
 
-  let to_string t = Printf.sprintf "{ cylinders = %d; heads = %d; sectors = %d }" t.cylinders t.heads t.sectors
-
   let unmarshal buf : (t, _) result =
     ( if Cstruct.length buf < 3
       then Error (Printf.sprintf "geometry too small: %d < %d" (Cstruct.length buf) 3)
@@ -113,34 +111,6 @@ module Partition = struct
     set_part_ty buf t.ty;
     set_part_first_absolute_sector_lba buf t.first_absolute_sector_lba;
     set_part_sectors buf t.sectors
-
-  let _active = "active"
-  let _first_absolute_sector_chs = "first-absolute-sector-chs"
-  let _ty = "type"
-  let _last_absolute_sector_chs = "last-absolute-sector-chs"
-  let _first_absolute_sector_lba = "first-absolute-sector-lba"
-  let _sectors = "sectors"
-
-  let all = [ _active; _first_absolute_sector_chs; _ty;
-    _last_absolute_sector_chs; _first_absolute_sector_lba;
-    _sectors;
-  ]
-
-  let get t key =
-    if key = _active
-    then Some (string_of_bool t.active)
-    else if key = _first_absolute_sector_chs
-    then Some (Geometry.to_string t.first_absolute_sector_chs)
-    else if key = _ty
-    then Some (string_of_int t.ty)
-    else if key = _last_absolute_sector_chs
-    then Some (Geometry.to_string t.last_absolute_sector_chs)
-    else if key = _first_absolute_sector_lba
-    then Some (Int32.to_string t.first_absolute_sector_lba)
-    else if key = _sectors
-    then Some (Int32.to_string t.sectors)
-    else None
-
 end
 
 type t = {
@@ -154,6 +124,9 @@ type t = {
 }
 
 let make partitions =
+  (* FIXME: List.length partitions <= 4 *)
+  (* FIXME: partitions not overlapping(?) *)
+  (* TODO: sort partitions *)
   let bootstrap_code = Cstruct.create 218, Cstruct.create 216 in
   let original_physical_drive = 0 in
   let seconds = 0 in
@@ -228,34 +201,3 @@ let marshal (buf: Cstruct.t) t =
 let sizeof = sizeof_mbr
 
 let default_partition_start = 2048l
-
-let _bootstrap_code = "bootstrap-code"
-let _original_physical_drive = "original-physical-drive"
-let _timestamp = "timestamp"
-let _disk_signature = "disk-signature"
-let _partition = "partition"
-let all = [
-  _bootstrap_code;
-  _original_physical_drive;
-  _timestamp;
-  _disk_signature;
-] @ (List.concat (List.map (fun i -> List.map (fun k -> Printf.sprintf "%s/%d/%s" _partition i k) Partition.all) [0;1;2;3]))
-
-let get t key =
-  if key = _bootstrap_code
-  then Some "code omitted"
-  else if key = _original_physical_drive
-  then Some (string_of_int t.original_physical_drive)
-  else if key = _timestamp
-  then Some (Printf.sprintf "%02d:%02d:%02d" t.hours t.minutes t.seconds)
-  else if key = _disk_signature
-  then Some (Int32.to_string t.disk_signature)
-  else begin match String.split_on_char '/' key with
-   | [ p; i; k ] when p = _partition ->
-     begin
-       try
-         Partition.get (List.nth t.partitions (int_of_string i)) k
-       with _ -> None
-     end
-   | _ -> None
-  end

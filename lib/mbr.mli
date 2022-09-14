@@ -35,20 +35,20 @@ module Geometry : sig
 end
 
 module Partition : sig
-  type t = {
+  type t = private {
     active: bool;
     (** true means the partition is active, also known as bootable *)
 
     first_absolute_sector_chs: Geometry.t;
     (** the CHS address of the first data sector. This is only used
-        by BIOSes with pre-LBA disks (< 1996) *)
+        by BIOSes with pre-LBA disks (< 1996). This will not be marshalled. *)
 
     ty: int;
     (** the advertised filesystem type *)
 
     last_absolute_sector_chs: Geometry.t;
     (** the CHS address of the last data sector. This is only used
-        by BIOSes with pre-LBA disks (< 1996) *)
+        by BIOSes with pre-LBA disks (< 1996). This will not be marshalled. *)
 
     first_absolute_sector_lba: int32;
     (** the Logical Block Address (LBA) of the first data sector. This
@@ -70,7 +70,7 @@ module Partition : sig
   val unmarshal: Cstruct.t -> (t, string) result
 end
 
-type t = {
+type t = private {
   bootstrap_code: Cstruct.t * Cstruct.t;
   original_physical_drive: int;
   seconds: int;
@@ -92,9 +92,3 @@ val sizeof: int
 
 val default_partition_start: int32
 (** default sector offset for first partition *)
-
-(* {1} Dynamically-typed query interface *)
-
-val all: string list
-
-val get: t -> string -> string option
