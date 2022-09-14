@@ -10,11 +10,11 @@ build-test: [make "test"]
 install: [make "install" "BINDIR=%{bin}%"]
 remove: [make "uninstall" "BINDIR=%{bin}%"]
 depends: [
-  "ocamlfind"
+  "dune"
   "lwt"
-  "cstruct"
+  "cstruct" {>= "6.0.0"}
+  "ppx_cstruct"
   "ounit"
-  "re"
   "mirage-types"
   "ipaddr"
   "io-page"
