@@ -10,7 +10,7 @@ build: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
-  "ocaml"
+  "ocaml" {>= "4.08.0"}
   "dune"
   "lwt"
   "cstruct" {>= "6.0.0"}
