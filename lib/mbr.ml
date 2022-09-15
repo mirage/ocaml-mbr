@@ -18,7 +18,6 @@ let ( >>= ) = Result.bind
 
 let kib = 1024L
 let mib = Int64.mul kib 1024L
-let _gib = Int64.mul mib 1024L
 
 module Geometry = struct
   type t = {
