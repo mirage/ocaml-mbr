@@ -15,6 +15,5 @@ depends: [
   "lwt"
   "cstruct" {>= "6.0.0"}
   "ppx_cstruct"
-  "mirage-types"
 ]
 synopsis: "A simple library for manipulating Master Boot Records"
