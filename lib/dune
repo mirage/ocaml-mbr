@@ -2,5 +2,5 @@
   (public_name mbr-format)
   (name mbr)
   (preprocess (pps ppx_cstruct))
-  (libraries cstruct re.str)
+  (libraries cstruct)
   (modules mbr))
