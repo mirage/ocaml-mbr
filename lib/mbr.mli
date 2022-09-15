@@ -101,6 +101,7 @@ val marshal: Cstruct.t -> t -> unit
 val unmarshal: Cstruct.t -> (t, string) result
 
 val sizeof: int
+(** [sizeof] is the size of a master boot record in bytes (512 bytes) *)
 
 val default_partition_start: int32
 (** default sector offset for first partition *)
