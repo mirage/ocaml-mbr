@@ -15,21 +15,17 @@
  *)
 
 let ( >>= ) = Result.bind
-
 let kib = 1024L
 let mib = Int64.mul kib 1024L
 
 module Geometry = struct
-  type t = {
-    cylinders : int;
-    heads : int;
-    sectors : int;
-  }
+  type t = { cylinders : int; heads : int; sectors : int }
 
   let unmarshal buf : (t, _) result =
-    ( if Cstruct.length buf < 3
-      then Error (Printf.sprintf "geometry too small: %d < %d" (Cstruct.length buf) 3)
-      else Ok () ) >>= fun () ->
+    (if Cstruct.length buf < 3 then
+     Error (Printf.sprintf "geometry too small: %d < %d" (Cstruct.length buf) 3)
+    else Ok ())
+    >>= fun () ->
     let heads = Cstruct.get_uint8 buf 0 in
     let y = Cstruct.get_uint8 buf 1 in
     let z = Cstruct.get_uint8 buf 2 in
@@ -39,16 +35,15 @@ module Geometry = struct
 
   let of_lba_size x =
     let sectors = 63 in
-    ( if x < Int64.(mul 504L mib)
-      then Ok 16
-      else if x < Int64.(mul 1008L mib)
-      then Ok 64
-      else if x < Int64.(mul 4032L mib)
-      then Ok 128
-      else if x < Int64.(add (mul 8032L mib) (mul 512L kib))
-      then Ok 255
-      else Error (Printf.sprintf "sector count exceeds LBA max: %Ld" x) ) >>= fun heads ->
-    let cylinders = Int64.(to_int (div (div x (of_int sectors)) (of_int heads))) in
+    (if x < Int64.(mul 504L mib) then Ok 16
+    else if x < Int64.(mul 1008L mib) then Ok 64
+    else if x < Int64.(mul 4032L mib) then Ok 128
+    else if x < Int64.(add (mul 8032L mib) (mul 512L kib)) then Ok 255
+    else Error (Printf.sprintf "sector count exceeds LBA max: %Ld" x))
+    >>= fun heads ->
+    let cylinders =
+      Int64.(to_int (div (div x (of_int sectors)) (of_int heads)))
+    in
     Ok { cylinders; heads; sectors }
 
   let to_chs g x =
@@ -61,64 +56,85 @@ end
 
 module Partition = struct
   type t = {
-    active: bool;
-    first_absolute_sector_chs: Geometry.t;
-    ty: int;
-    last_absolute_sector_chs: Geometry.t;
-    first_absolute_sector_lba: int32;
-    sectors: int32;
+    active : bool;
+    first_absolute_sector_chs : Geometry.t;
+    ty : int;
+    last_absolute_sector_chs : Geometry.t;
+    first_absolute_sector_lba : int32;
+    sectors : int32;
   }
 
   let sector_start t =
     Int64.(logand (of_int32 t.first_absolute_sector_lba) 0xFFFF_FFFFL)
 
-  let size_sectors t =
-    Int64.(logand (of_int32 t.sectors) 0xFFFF_FFFFL)
+  let size_sectors t = Int64.(logand (of_int32 t.sectors) 0xFFFF_FFFFL)
 
-  let make ?(active=false) ?(ty=6) first_absolute_sector_lba sectors =
-    let first_absolute_sector_chs = { Geometry.cylinders = 0; heads = 0; sectors = 0; } in
+  let make ?(active = false) ?(ty = 6) first_absolute_sector_lba sectors =
+    let first_absolute_sector_chs =
+      { Geometry.cylinders = 0; heads = 0; sectors = 0 }
+    in
     let last_absolute_sector_chs = first_absolute_sector_chs in
-    { active; first_absolute_sector_chs; ty;
+    {
+      active;
+      first_absolute_sector_chs;
+      ty;
       last_absolute_sector_chs;
       first_absolute_sector_lba;
-      sectors }
+      sectors;
+    }
 
   let make' ?active ?ty sector_start size_sectors =
-    if Int64.(logand sector_start 0xFFFF_FFFFL = sector_start &&
-              logand size_sectors 0xFFFF_FFFFL = size_sectors) then
-      Ok (make ?active ?ty (Int64.to_int32 sector_start) (Int64.to_int32 size_sectors))
-    else
-      Error "partition parameters do not fit in int32"
+    if
+      Int64.(
+        logand sector_start 0xFFFF_FFFFL = sector_start
+        && logand size_sectors 0xFFFF_FFFFL = size_sectors)
+    then
+      Ok
+        (make ?active ?ty
+           (Int64.to_int32 sector_start)
+           (Int64.to_int32 size_sectors))
+    else Error "partition parameters do not fit in int32"
 
   [%%cstruct
-    type part = {
-      status : uint8_t;
-      first_absolute_sector_chs : uint8_t[@len 3];
-      ty : uint8_t;
-      last_absolute_sector_chs : uint8_t[@len 3];
-      first_absolute_sector_lba : uint32_t;
-      sectors : uint32_t;
-    } [@@little_endian]]
+  type part = {
+    status : uint8_t;
+    first_absolute_sector_chs : uint8_t; [@len 3]
+    ty : uint8_t;
+    last_absolute_sector_chs : uint8_t; [@len 3]
+    first_absolute_sector_lba : uint32_t;
+    sectors : uint32_t;
+  }
+  [@@little_endian]]
 
   let _ = assert (sizeof_part = 16)
-
   let sizeof = sizeof_part
 
-  let unmarshal (buf: Cstruct.t) : (t, string) result =
-    ( if Cstruct.length buf < sizeof_part
-      then Error (Printf.sprintf "partition entry too small: %d < %d" (Cstruct.length buf) sizeof_part)
-      else Ok () ) >>= fun () ->
+  let unmarshal (buf : Cstruct.t) : (t, string) result =
+    (if Cstruct.length buf < sizeof_part then
+     Error
+       (Printf.sprintf "partition entry too small: %d < %d" (Cstruct.length buf)
+          sizeof_part)
+    else Ok ())
+    >>= fun () ->
     let active = get_part_status buf = 0x80 in
-    Geometry.unmarshal (get_part_first_absolute_sector_chs buf) >>= fun first_absolute_sector_chs ->
+    Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
+    >>= fun first_absolute_sector_chs ->
     let ty = get_part_ty buf in
-    Geometry.unmarshal (get_part_last_absolute_sector_chs buf) >>= fun last_absolute_sector_chs ->
+    Geometry.unmarshal (get_part_last_absolute_sector_chs buf)
+    >>= fun last_absolute_sector_chs ->
     let first_absolute_sector_lba = get_part_first_absolute_sector_lba buf in
     let sectors = get_part_sectors buf in
-    Ok { active; first_absolute_sector_chs; ty;
-      last_absolute_sector_chs; first_absolute_sector_lba;
-      sectors }
+    Ok
+      {
+        active;
+        first_absolute_sector_chs;
+        ty;
+        last_absolute_sector_chs;
+        first_absolute_sector_lba;
+        sectors;
+      }
 
-  let marshal (buf: Cstruct.t) t =
+  let marshal (buf : Cstruct.t) t =
     set_part_status buf (if t.active then 0x80 else 0);
     set_part_ty buf t.ty;
     set_part_first_absolute_sector_lba buf t.first_absolute_sector_lba;
@@ -126,75 +142,99 @@ module Partition = struct
 end
 
 type t = {
-  bootstrap_code: Cstruct.t * Cstruct.t;
-  original_physical_drive: int;
-  seconds: int;
-  minutes: int;
-  hours: int;
-  disk_signature: int32;
-  partitions: Partition.t list;
+  bootstrap_code : Cstruct.t * Cstruct.t;
+  original_physical_drive : int;
+  seconds : int;
+  minutes : int;
+  hours : int;
+  disk_signature : int32;
+  partitions : Partition.t list;
 }
 
 let make partitions =
   (* FIXME: List.length partitions <= 4 *)
   (* FIXME: partitions not overlapping(?) *)
   (* TODO: sort partitions *)
-  let bootstrap_code = Cstruct.create 218, Cstruct.create 216 in
+  let bootstrap_code = (Cstruct.create 218, Cstruct.create 216) in
   let original_physical_drive = 0 in
   let seconds = 0 in
   let minutes = 0 in
   let hours = 0 in
   let disk_signature = 0l in
-  { bootstrap_code; original_physical_drive;
-    seconds; minutes; hours; disk_signature;
-    partitions }
+  {
+    bootstrap_code;
+    original_physical_drive;
+    seconds;
+    minutes;
+    hours;
+    disk_signature;
+    partitions;
+  }
 
 (* "modern standard" MBR from wikipedia: *)
 [%%cstruct
-  type mbr = {
-    bootstrap_code1 : uint8_t[@len 218];
-    _zeroes_1 : uint8_t[@len 2];
-    original_physical_drive : uint8_t;
-    seconds : uint8_t;
-    minutes : uint8_t;
-    hours : uint8_t;
-    bootstrap_code2 : uint8_t[@len 216];
-    disk_signature : uint32_t;
-    _zeroes_2 : uint8_t[@len 2];
-    partitions : uint8_t[@len 64];
-    signature1 : uint8_t; (* 0x55 *)
-    signature2 : uint8_t(* 0xaa *)
-  } [@@little_endian]]
+type mbr = {
+  bootstrap_code1 : uint8_t; [@len 218]
+  _zeroes_1 : uint8_t; [@len 2]
+  original_physical_drive : uint8_t;
+  seconds : uint8_t;
+  minutes : uint8_t;
+  hours : uint8_t;
+  bootstrap_code2 : uint8_t; [@len 216]
+  disk_signature : uint32_t;
+  _zeroes_2 : uint8_t; [@len 2]
+  partitions : uint8_t; [@len 64]
+  signature1 : uint8_t; (* 0x55 *)
+  signature2 : uint8_t; (* 0xaa *)
+}
+[@@little_endian]]
 
-let _ = assert(sizeof_mbr = 512)
+let _ = assert (sizeof_mbr = 512)
 
-let unmarshal (buf: Cstruct.t) : (t, string) result =
-    ( if Cstruct.length buf < sizeof_mbr
-      then Error (Printf.sprintf "MBR too small: %d < %d" (Cstruct.length buf) sizeof_mbr)
-      else Ok () ) >>= fun () ->
-    let signature1 = get_mbr_signature1 buf in
-    let signature2 = get_mbr_signature2 buf in
-    ( if signature1 = 0x55 && (signature2 = 0xaa)
-      then Ok ()
-      else Error (Printf.sprintf "Invalid signature: %02x %02x <> 0x55 0xaa" signature1 signature2) ) >>= fun () ->
-    let bootstrap_code = get_mbr_bootstrap_code1 buf, get_mbr_bootstrap_code2 buf in
-    let original_physical_drive = get_mbr_original_physical_drive buf in
-    let seconds = get_mbr_seconds buf in
-    let minutes = get_mbr_minutes buf in
-    let hours = get_mbr_hours buf in
-    let disk_signature = get_mbr_disk_signature buf in
-    let partitions = get_mbr_partitions buf in
-    Partition.unmarshal (Cstruct.shift partitions (0 * Partition.sizeof)) >>= fun p1 ->
-    Partition.unmarshal (Cstruct.shift partitions (1 * Partition.sizeof)) >>= fun p2 ->
-    Partition.unmarshal (Cstruct.shift partitions (2 * Partition.sizeof)) >>= fun p3 ->
-    Partition.unmarshal (Cstruct.shift partitions (3 * Partition.sizeof)) >>= fun p4 ->
-    let partitions = [ p1; p2; p3; p4 ] in
-    Ok { bootstrap_code;
-      original_physical_drive; seconds; minutes; hours;
+let unmarshal (buf : Cstruct.t) : (t, string) result =
+  (if Cstruct.length buf < sizeof_mbr then
+   Error
+     (Printf.sprintf "MBR too small: %d < %d" (Cstruct.length buf) sizeof_mbr)
+  else Ok ())
+  >>= fun () ->
+  let signature1 = get_mbr_signature1 buf in
+  let signature2 = get_mbr_signature2 buf in
+  (if signature1 = 0x55 && signature2 = 0xaa then Ok ()
+  else
+    Error
+      (Printf.sprintf "Invalid signature: %02x %02x <> 0x55 0xaa" signature1
+         signature2))
+  >>= fun () ->
+  let bootstrap_code =
+    (get_mbr_bootstrap_code1 buf, get_mbr_bootstrap_code2 buf)
+  in
+  let original_physical_drive = get_mbr_original_physical_drive buf in
+  let seconds = get_mbr_seconds buf in
+  let minutes = get_mbr_minutes buf in
+  let hours = get_mbr_hours buf in
+  let disk_signature = get_mbr_disk_signature buf in
+  let partitions = get_mbr_partitions buf in
+  Partition.unmarshal (Cstruct.shift partitions (0 * Partition.sizeof))
+  >>= fun p1 ->
+  Partition.unmarshal (Cstruct.shift partitions (1 * Partition.sizeof))
+  >>= fun p2 ->
+  Partition.unmarshal (Cstruct.shift partitions (2 * Partition.sizeof))
+  >>= fun p3 ->
+  Partition.unmarshal (Cstruct.shift partitions (3 * Partition.sizeof))
+  >>= fun p4 ->
+  let partitions = [ p1; p2; p3; p4 ] in
+  Ok
+    {
+      bootstrap_code;
+      original_physical_drive;
+      seconds;
+      minutes;
+      hours;
       disk_signature;
-      partitions }
+      partitions;
+    }
 
-let marshal (buf: Cstruct.t) t =
+let marshal (buf : Cstruct.t) t =
   set_mbr_bootstrap_code1 (Cstruct.to_string (fst t.bootstrap_code)) 0 buf;
   set_mbr_bootstrap_code2 (Cstruct.to_string (snd t.bootstrap_code)) 0 buf;
   set_mbr_original_physical_drive buf t.original_physical_drive;
@@ -203,13 +243,15 @@ let marshal (buf: Cstruct.t) t =
   set_mbr_hours buf t.hours;
   set_mbr_disk_signature buf t.disk_signature;
   let partitions = get_mbr_partitions buf in
-  let _ = List.fold_left (fun buf p ->
-    Partition.marshal buf p;
-    Cstruct.shift buf Partition.sizeof
-  ) partitions t.partitions in
+  let _ =
+    List.fold_left
+      (fun buf p ->
+        Partition.marshal buf p;
+        Cstruct.shift buf Partition.sizeof)
+      partitions t.partitions
+  in
   set_mbr_signature1 buf 0x55;
   set_mbr_signature2 buf 0xaa
 
 let sizeof = sizeof_mbr
-
 let default_partition_start = 2048l
