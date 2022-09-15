@@ -1,24 +1,20 @@
-opam-version: "1.2"
-maintainer:   "dave.scott@eu.citrix.com"
+opam-version: "2.0"
+maintainer:   ["Reynir Björnsson <reynir@reynir.dk>" "dave.scott@eu.citrix.com"]
 authors:      "dave.scott@eu.citrix.com"
 homepage:     "https://github.com/mirage/ocaml-mbr"
 bug-reports:  "https://github.com/mirage/ocaml-mbr/issues"
-dev-repo:     "https://github.com/mirage/ocaml-mbr.git"
-
-build: [make]
-build-test: [make "test"]
-install: [make "install" "BINDIR=%{bin}%"]
-remove: [make "uninstall" "BINDIR=%{bin}%"]
+dev-repo:     "git+https://github.com/mirage/ocaml-mbr.git"
+build: [
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
 depends: [
+  "ocaml"
   "dune"
   "lwt"
   "cstruct" {>= "6.0.0"}
   "ppx_cstruct"
-  "ounit"
   "mirage-types"
-  "ipaddr"
-  "io-page"
-  "cmdliner"
-  "ounit" {test}
 ]
-available: [ocaml-version >= "4.00.0"]
+synopsis: "A simple library for manipulating Master Boot Records"
