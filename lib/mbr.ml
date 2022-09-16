@@ -15,11 +15,12 @@
  *)
 
 let ( >>= ) = Result.bind
-let kib = 1024L
-let mib = Int64.mul kib 1024L
 
 module Geometry = struct
   type t = { cylinders : int; heads : int; sectors : int }
+
+  let kib = 1024L
+  let mib = Int64.mul kib 1024L
 
   let unmarshal buf : (t, _) result =
     (if Cstruct.length buf < 3 then
@@ -142,7 +143,7 @@ module Partition = struct
 end
 
 type t = {
-  bootstrap_code : Cstruct.t * Cstruct.t;
+  bootstrap_code : string;
   original_physical_drive : int;
   seconds : int;
   minutes : int;
@@ -155,7 +156,7 @@ let make partitions =
   (* FIXME: List.length partitions <= 4 *)
   (* FIXME: partitions not overlapping(?) *)
   (* TODO: sort partitions *)
-  let bootstrap_code = (Cstruct.create 218, Cstruct.create 216) in
+  let bootstrap_code = String.init (218 + 216) (Fun.const '\000') in
   let original_physical_drive = 0 in
   let seconds = 0 in
   let minutes = 0 in
@@ -206,8 +207,9 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
          signature2))
   >>= fun () ->
   let bootstrap_code =
-    (get_mbr_bootstrap_code1 buf, get_mbr_bootstrap_code2 buf)
+    Cstruct.append (get_mbr_bootstrap_code1 buf) (get_mbr_bootstrap_code2 buf)
   in
+  let bootstrap_code = Cstruct.to_string bootstrap_code in
   let original_physical_drive = get_mbr_original_physical_drive buf in
   let seconds = get_mbr_seconds buf in
   let minutes = get_mbr_minutes buf in
@@ -235,8 +237,10 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
     }
 
 let marshal (buf : Cstruct.t) t =
-  set_mbr_bootstrap_code1 (Cstruct.to_string (fst t.bootstrap_code)) 0 buf;
-  set_mbr_bootstrap_code2 (Cstruct.to_string (snd t.bootstrap_code)) 0 buf;
+  let bootstrap_code1 = String.sub t.bootstrap_code 0 218
+  and bootstrap_code2 = String.sub t.bootstrap_code 218 216 in
+  set_mbr_bootstrap_code1 bootstrap_code1 0 buf;
+  set_mbr_bootstrap_code2 bootstrap_code2 0 buf;
   set_mbr_original_physical_drive buf t.original_physical_drive;
   set_mbr_seconds buf t.seconds;
   set_mbr_minutes buf t.minutes;

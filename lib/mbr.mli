@@ -72,7 +72,7 @@ module Partition : sig
 end
 
 type t = private {
-  bootstrap_code : Cstruct.t * Cstruct.t;
+  bootstrap_code : string;
   original_physical_drive : int;
   seconds : int;
   minutes : int;
