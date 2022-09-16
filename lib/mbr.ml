@@ -155,6 +155,7 @@ type t = {
 let make partitions =
   (* FIXME: List.length partitions <= 4 *)
   (* FIXME: partitions not overlapping(?) *)
+  (* XXX: (preferably) at most one 'active' partition *)
   (* TODO: sort partitions *)
   let bootstrap_code = String.init (218 + 216) (Fun.const '\000') in
   let original_physical_drive = 0 in
