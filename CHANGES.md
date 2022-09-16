@@ -1,4 +1,4 @@
-v0.4 (unreleased)
+v1.0 (unreleased)
 * Switch to dune
 * Remove `Mbr_partition` and `Mbr_lwt`
 * Remove old stringly typed interface

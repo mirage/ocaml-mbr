@@ -72,19 +72,22 @@ module Partition = struct
 
   let make ?(active = false) ?(ty = 6) first_absolute_sector_lba sectors =
     (* ty has to fit in a uint8_t, and ty=0 is reserved for empty partition entries *)
-    assert (ty > 0 && ty < 256);
-    let first_absolute_sector_chs =
-      { Geometry.cylinders = 0; heads = 0; sectors = 0 }
-    in
-    let last_absolute_sector_chs = first_absolute_sector_chs in
-    {
-      active;
-      first_absolute_sector_chs;
-      ty;
-      last_absolute_sector_chs;
-      first_absolute_sector_lba;
-      sectors;
-    }
+    if not (ty > 0 && ty < 256) then
+      Error "Mbr.Partition.make: ty must be between 1 and 255"
+    else
+      let first_absolute_sector_chs =
+        { Geometry.cylinders = 0; heads = 0; sectors = 0 }
+      in
+      let last_absolute_sector_chs = first_absolute_sector_chs in
+      Ok
+        {
+          active;
+          first_absolute_sector_chs;
+          ty;
+          last_absolute_sector_chs;
+          first_absolute_sector_lba;
+          sectors;
+        }
 
   let make' ?active ?ty sector_start size_sectors =
     if
@@ -92,10 +95,9 @@ module Partition = struct
         logand sector_start 0xFFFF_FFFFL = sector_start
         && logand size_sectors 0xFFFF_FFFFL = size_sectors)
     then
-      Ok
-        (make ?active ?ty
-           (Int64.to_int32 sector_start)
-           (Int64.to_int32 size_sectors))
+      make ?active ?ty
+        (Int64.to_int32 sector_start)
+        (Int64.to_int32 size_sectors)
     else Error "partition parameters do not fit in int32"
 
   [%%cstruct

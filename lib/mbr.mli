@@ -54,7 +54,7 @@ module Partition : sig
   val size_sectors : t -> int64
   (** [size_sectors t] is the int64 representation of [t.sectors]. *)
 
-  val make : ?active:bool -> ?ty:int -> int32 -> int32 -> t
+  val make : ?active:bool -> ?ty:int -> int32 -> int32 -> (t, string) result
   (** [make ?active ?ty start length] creates a partition starting at sector
       [start] and with length [length] sectors. If the active flag is set then
       the partition will be marked as active/bootable. If partition type [ty] is
