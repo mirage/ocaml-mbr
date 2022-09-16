@@ -176,14 +176,14 @@ let make partitions =
 [%%cstruct
 type mbr = {
   bootstrap_code1 : uint8_t; [@len 218]
-  _zeroes_1 : uint8_t; [@len 2]
+  zeroes_1 : uint16_t;
   original_physical_drive : uint8_t;
   seconds : uint8_t;
   minutes : uint8_t;
   hours : uint8_t;
   bootstrap_code2 : uint8_t; [@len 216]
   disk_signature : uint32_t;
-  _zeroes_2 : uint8_t; [@len 2]
+  copy_protected : uint16_t;
   partitions : uint8_t; [@len 64]
   signature1 : uint8_t; (* 0x55 *)
   signature2 : uint8_t; (* 0xaa *)
@@ -205,6 +205,16 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
     Error
       (Printf.sprintf "Invalid signature: %02x %02x <> 0x55 0xaa" signature1
          signature2))
+  >>= fun () ->
+  let zeroes = get_mbr_zeroes buf in
+  (if zeroes = 0 then Ok ()
+  else Error (Printf.sprintf "Expected 0x0000, found 0x%04x" zeroes))
+  >>= fun () ->
+  let copy_protected = get_mbr_copy_protected buf in
+  (match copy_protected with
+  | 0 -> Ok (copy_protected = 0x5a5a)
+  | _ ->
+      Error (Printf.sprintf "Invalid copy protection value %d" copy_protected))
   >>= fun () ->
   let bootstrap_code =
     Cstruct.append (get_mbr_bootstrap_code1 buf) (get_mbr_bootstrap_code2 buf)
