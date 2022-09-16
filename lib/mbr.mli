@@ -83,9 +83,13 @@ type t = private {
   partitions : Partition.t list;
 }
 
-val make : Partition.t list -> t
+val make : Partition.t list -> (t, string) result
 (** [make partitions] constructs an MBR given a desired list of primary
-    partitions *)
+    partitions. An [Error _] is returned if:
+
+    - The number of partitions exceeds four,
+    - Any of the partitions overlap with each other or the first sector,
+    - More than one partition is marked as active (bootable). *)
 
 val marshal : Cstruct.t -> t -> unit
 val unmarshal : Cstruct.t -> (t, string) result

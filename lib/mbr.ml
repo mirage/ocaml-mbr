@@ -72,22 +72,22 @@ module Partition = struct
 
   let make ?(active = false) ?(ty = 6) first_absolute_sector_lba sectors =
     (* ty has to fit in a uint8_t, and ty=0 is reserved for empty partition entries *)
-    if not (ty > 0 && ty < 256) then
-      Error "Mbr.Partition.make: ty must be between 1 and 255"
-    else
-      let first_absolute_sector_chs =
-        { Geometry.cylinders = 0; heads = 0; sectors = 0 }
-      in
-      let last_absolute_sector_chs = first_absolute_sector_chs in
-      Ok
-        {
-          active;
-          first_absolute_sector_chs;
-          ty;
-          last_absolute_sector_chs;
-          first_absolute_sector_lba;
-          sectors;
-        }
+    (if ty > 0 && ty < 256 then Ok ()
+    else Error "Mbr.Partition.make: ty must be between 1 and 255")
+    >>= fun () ->
+    let first_absolute_sector_chs =
+      { Geometry.cylinders = 0; heads = 0; sectors = 0 }
+    in
+    let last_absolute_sector_chs = first_absolute_sector_chs in
+    Ok
+      {
+        active;
+        first_absolute_sector_chs;
+        ty;
+        last_absolute_sector_chs;
+        first_absolute_sector_lba;
+        sectors;
+      }
 
   let make' ?active ?ty sector_start size_sectors =
     if
@@ -163,25 +163,51 @@ type t = {
 }
 
 let make partitions =
-  (* FIXME: List.length partitions <= 4 *)
-  (* FIXME: partitions not overlapping(?) *)
-  (* XXX: (preferably) at most one 'active' partition *)
-  (* TODO: sort partitions *)
+  (if List.length partitions <= 4 then Ok () else Error "Too many partitions")
+  >>= fun () ->
+  let num_active =
+    List.fold_left
+      (fun acc p -> if p.Partition.active then succ acc else acc)
+      0 partitions
+  in
+  (if num_active <= 1 then Ok ()
+  else Error "More than one active/boot partitions is not advisable")
+  >>= fun () ->
+  let partitions =
+    List.sort
+      (fun p1 p2 ->
+        Int32.unsigned_compare p1.Partition.first_absolute_sector_lba
+          p2.Partition.first_absolute_sector_lba)
+      partitions
+  in
+  (* Check for overlapping partitions *)
+  List.fold_left
+    (fun r p ->
+      r >>= fun offset ->
+      if
+        Int32.unsigned_compare offset p.Partition.first_absolute_sector_lba <= 0
+      then
+        Ok (Int32.add p.Partition.first_absolute_sector_lba p.Partition.sectors)
+      else Error "Partitions overlap")
+    (Ok 1l) (* We start at 1 so the partitions don't overlap with the MBR *)
+    partitions
+  >>= fun (_ : int32) ->
   let bootstrap_code = String.init (218 + 216) (Fun.const '\000') in
   let original_physical_drive = 0 in
   let seconds = 0 in
   let minutes = 0 in
   let hours = 0 in
   let disk_signature = 0l in
-  {
-    bootstrap_code;
-    original_physical_drive;
-    seconds;
-    minutes;
-    hours;
-    disk_signature;
-    partitions;
-  }
+  Ok
+    {
+      bootstrap_code;
+      original_physical_drive;
+      seconds;
+      minutes;
+      hours;
+      disk_signature;
+      partitions;
+    }
 
 (* "modern standard" MBR from wikipedia: *)
 [%%cstruct
