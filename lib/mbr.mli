@@ -59,7 +59,7 @@ module Partition : sig
       [start] and with length [length] sectors. If the active flag is set then
       the partition will be marked as active/bootable. If partition type [ty] is
       given then this will determine the advertised filesystem type, by default
-      this is set to 6 (FAT16) *)
+      this is set to 6 (FAT16). [ty] must be between 1 and 255. *)
 
   val make' : ?active:bool -> ?ty:int -> int64 -> int64 -> (t, string) result
   (** [make' ?active ?ty sector_start size_sectors] is
@@ -68,7 +68,9 @@ module Partition : sig
       when both [sector_start] and [size_sectors] fit in int32. Otherwise
       [Error _]. *)
 
-  val unmarshal : Cstruct.t -> (t, string) result
+  val unmarshal : Cstruct.t -> (t option, string) result
+  (** [unmarshal buf] is the partition entry encoded in the beginning of [buf].
+      If it is the empty partition entry [None] is returned. *)
 end
 
 type t = private {

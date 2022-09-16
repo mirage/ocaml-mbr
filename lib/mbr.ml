@@ -71,6 +71,8 @@ module Partition = struct
   let size_sectors t = Int64.(logand (of_int32 t.sectors) 0xFFFF_FFFFL)
 
   let make ?(active = false) ?(ty = 6) first_absolute_sector_lba sectors =
+    (* ty has to fit in a uint8_t, and ty=0 is reserved for empty partition entries *)
+    assert (ty > 0 && ty < 256);
     let first_absolute_sector_chs =
       { Geometry.cylinders = 0; heads = 0; sectors = 0 }
     in
@@ -110,30 +112,36 @@ module Partition = struct
   let _ = assert (sizeof_part = 16)
   let sizeof = sizeof_part
 
-  let unmarshal (buf : Cstruct.t) : (t, string) result =
+  let unmarshal buf =
     (if Cstruct.length buf < sizeof_part then
      Error
        (Printf.sprintf "partition entry too small: %d < %d" (Cstruct.length buf)
           sizeof_part)
     else Ok ())
     >>= fun () ->
-    let active = get_part_status buf = 0x80 in
-    Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
-    >>= fun first_absolute_sector_chs ->
+    let buf = Cstruct.sub buf 0 sizeof_part in
     let ty = get_part_ty buf in
-    Geometry.unmarshal (get_part_last_absolute_sector_chs buf)
-    >>= fun last_absolute_sector_chs ->
-    let first_absolute_sector_lba = get_part_first_absolute_sector_lba buf in
-    let sectors = get_part_sectors buf in
-    Ok
-      {
-        active;
-        first_absolute_sector_chs;
-        ty;
-        last_absolute_sector_chs;
-        first_absolute_sector_lba;
-        sectors;
-      }
+    if ty == 0x00 then
+      if Cstruct.for_all (( = ) '\000') buf then Ok None
+      else Error "Non-zero empty partition type"
+    else
+      let active = get_part_status buf = 0x80 in
+      Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
+      >>= fun first_absolute_sector_chs ->
+      Geometry.unmarshal (get_part_last_absolute_sector_chs buf)
+      >>= fun last_absolute_sector_chs ->
+      let first_absolute_sector_lba = get_part_first_absolute_sector_lba buf in
+      let sectors = get_part_sectors buf in
+      Ok
+        (Some
+           {
+             active;
+             first_absolute_sector_chs;
+             ty;
+             last_absolute_sector_chs;
+             first_absolute_sector_lba;
+             sectors;
+           })
 
   let marshal (buf : Cstruct.t) t =
     set_part_status buf (if t.active then 0x80 else 0);
@@ -225,7 +233,7 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
   >>= fun p3 ->
   Partition.unmarshal (Cstruct.shift partitions (3 * Partition.sizeof))
   >>= fun p4 ->
-  let partitions = [ p1; p2; p3; p4 ] in
+  let partitions = List.filter_map Fun.id [ p1; p2; p3; p4 ] in
   Ok
     {
       bootstrap_code;
