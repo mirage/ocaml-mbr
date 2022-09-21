@@ -1,3 +1,12 @@
+v1.0 (unreleased)
+* Switch to dune
+* Remove `Mbr_partition` and `Mbr_lwt`
+* Remove old stringly typed interface
+* Types are private
+* Add helper functions to convert between uint32 MBR values and int64 values as expected in `Mirage_block`
+* Update code and slim down on dependencies
+* Handle empty partition entries
+
 v0.3 (2015-06-04)
 * Expose a `connect` function for mirage-types > 2.3
 * Fix bounds checks

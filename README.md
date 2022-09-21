@@ -22,19 +22,11 @@ Define a single partition as follows:
 ```
 You can write the MBR to sector zero of a block device ```B``` as follows:
 ```
-    B.connect id >>|= fun device ->
+    B.connect id >|= fun device ->
     let sector = Cstruct.create 512 in
     Mbr.marshal sector mbr;
-    B.write device 0L [ sector ] >>|= fun () ->
-```
-You can then create a Partition block device as follows:
-```
-    let module Partition = Mbr_partition.Make(B) in
-    Partition.connect {
-      Partition.b = device;
-      start_sector = Int64.of_int32 start_sector;
-      length_sectors = Int64.of_int32 length_sectors;
-    } >>= fun partition_or_error ->
+    B.write device 0L [ sector ] >|= fun () ->
+    ...
 ```
 
 To do items

@@ -71,18 +71,23 @@ module Partition = struct
   let size_sectors t = Int64.(logand (of_int32 t.sectors) 0xFFFF_FFFFL)
 
   let make ?(active = false) ?(ty = 6) first_absolute_sector_lba sectors =
+    (* ty has to fit in a uint8_t, and ty=0 is reserved for empty partition entries *)
+    (if ty > 0 && ty < 256 then Ok ()
+    else Error "Mbr.Partition.make: ty must be between 1 and 255")
+    >>= fun () ->
     let first_absolute_sector_chs =
       { Geometry.cylinders = 0; heads = 0; sectors = 0 }
     in
     let last_absolute_sector_chs = first_absolute_sector_chs in
-    {
-      active;
-      first_absolute_sector_chs;
-      ty;
-      last_absolute_sector_chs;
-      first_absolute_sector_lba;
-      sectors;
-    }
+    Ok
+      {
+        active;
+        first_absolute_sector_chs;
+        ty;
+        last_absolute_sector_chs;
+        first_absolute_sector_lba;
+        sectors;
+      }
 
   let make' ?active ?ty sector_start size_sectors =
     if
@@ -90,10 +95,9 @@ module Partition = struct
         logand sector_start 0xFFFF_FFFFL = sector_start
         && logand size_sectors 0xFFFF_FFFFL = size_sectors)
     then
-      Ok
-        (make ?active ?ty
-           (Int64.to_int32 sector_start)
-           (Int64.to_int32 size_sectors))
+      make ?active ?ty
+        (Int64.to_int32 sector_start)
+        (Int64.to_int32 size_sectors)
     else Error "partition parameters do not fit in int32"
 
   [%%cstruct
@@ -110,30 +114,36 @@ module Partition = struct
   let _ = assert (sizeof_part = 16)
   let sizeof = sizeof_part
 
-  let unmarshal (buf : Cstruct.t) : (t, string) result =
+  let unmarshal buf =
     (if Cstruct.length buf < sizeof_part then
      Error
        (Printf.sprintf "partition entry too small: %d < %d" (Cstruct.length buf)
           sizeof_part)
     else Ok ())
     >>= fun () ->
-    let active = get_part_status buf = 0x80 in
-    Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
-    >>= fun first_absolute_sector_chs ->
+    let buf = Cstruct.sub buf 0 sizeof_part in
     let ty = get_part_ty buf in
-    Geometry.unmarshal (get_part_last_absolute_sector_chs buf)
-    >>= fun last_absolute_sector_chs ->
-    let first_absolute_sector_lba = get_part_first_absolute_sector_lba buf in
-    let sectors = get_part_sectors buf in
-    Ok
-      {
-        active;
-        first_absolute_sector_chs;
-        ty;
-        last_absolute_sector_chs;
-        first_absolute_sector_lba;
-        sectors;
-      }
+    if ty == 0x00 then
+      if Cstruct.for_all (( = ) '\000') buf then Ok None
+      else Error "Non-zero empty partition type"
+    else
+      let active = get_part_status buf = 0x80 in
+      Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
+      >>= fun first_absolute_sector_chs ->
+      Geometry.unmarshal (get_part_last_absolute_sector_chs buf)
+      >>= fun last_absolute_sector_chs ->
+      let first_absolute_sector_lba = get_part_first_absolute_sector_lba buf in
+      let sectors = get_part_sectors buf in
+      Ok
+        (Some
+           {
+             active;
+             first_absolute_sector_chs;
+             ty;
+             last_absolute_sector_chs;
+             first_absolute_sector_lba;
+             sectors;
+           })
 
   let marshal (buf : Cstruct.t) t =
     set_part_status buf (if t.active then 0x80 else 0);
@@ -153,25 +163,51 @@ type t = {
 }
 
 let make partitions =
-  (* FIXME: List.length partitions <= 4 *)
-  (* FIXME: partitions not overlapping(?) *)
-  (* XXX: (preferably) at most one 'active' partition *)
-  (* TODO: sort partitions *)
+  (if List.length partitions <= 4 then Ok () else Error "Too many partitions")
+  >>= fun () ->
+  let num_active =
+    List.fold_left
+      (fun acc p -> if p.Partition.active then succ acc else acc)
+      0 partitions
+  in
+  (if num_active <= 1 then Ok ()
+  else Error "More than one active/boot partitions is not advisable")
+  >>= fun () ->
+  let partitions =
+    List.sort
+      (fun p1 p2 ->
+        Int32.unsigned_compare p1.Partition.first_absolute_sector_lba
+          p2.Partition.first_absolute_sector_lba)
+      partitions
+  in
+  (* Check for overlapping partitions *)
+  List.fold_left
+    (fun r p ->
+      r >>= fun offset ->
+      if
+        Int32.unsigned_compare offset p.Partition.first_absolute_sector_lba <= 0
+      then
+        Ok (Int32.add p.Partition.first_absolute_sector_lba p.Partition.sectors)
+      else Error "Partitions overlap")
+    (Ok 1l) (* We start at 1 so the partitions don't overlap with the MBR *)
+    partitions
+  >>= fun (_ : int32) ->
   let bootstrap_code = String.init (218 + 216) (Fun.const '\000') in
   let original_physical_drive = 0 in
   let seconds = 0 in
   let minutes = 0 in
   let hours = 0 in
   let disk_signature = 0l in
-  {
-    bootstrap_code;
-    original_physical_drive;
-    seconds;
-    minutes;
-    hours;
-    disk_signature;
-    partitions;
-  }
+  Ok
+    {
+      bootstrap_code;
+      original_physical_drive;
+      seconds;
+      minutes;
+      hours;
+      disk_signature;
+      partitions;
+    }
 
 (* "modern standard" MBR from wikipedia: *)
 [%%cstruct
@@ -225,7 +261,7 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
   >>= fun p3 ->
   Partition.unmarshal (Cstruct.shift partitions (3 * Partition.sizeof))
   >>= fun p4 ->
-  let partitions = [ p1; p2; p3; p4 ] in
+  let partitions = List.filter_map Fun.id [ p1; p2; p3; p4 ] in
   Ok
     {
       bootstrap_code;
