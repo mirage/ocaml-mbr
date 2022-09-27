@@ -22,18 +22,16 @@ Define a single partition as follows:
 ```
 You can write the MBR to sector zero of a block device ```B``` as follows:
 ```
-    B.connect id >|= fun device ->
+    B.connect id >>= fun device ->
     let sector = Cstruct.create 512 in
     Mbr.marshal sector mbr;
-    B.write device 0L [ sector ] >|= fun () ->
+    B.write device 0L [ sector ] >>= fun () ->
     ...
 ```
 
 To do items
 -----------
 
-* It's easy to specify nonsense, for example overlapping
-  partition entries. We could do with a way to represent a
-  disk as a set of non-overlapping extents which could be
-  nested (partition / LVM volume / filesystem / file)
-
+* Implement tools to manipulate MBR-formatted disk images
+  to construct, inspect or fill partitions that can later
+  be used in Mirage unikernels.
