@@ -1,6 +1,7 @@
 opam-version: "2.0"
 maintainer:   ["Reynir Björnsson <reynir@reynir.dk>" "dave.scott@eu.citrix.com"]
 authors:      "dave.scott@eu.citrix.com"
+license:      "ISC"
 homepage:     "https://github.com/mirage/ocaml-mbr"
 bug-reports:  "https://github.com/mirage/ocaml-mbr/issues"
 dev-repo:     "git+https://github.com/mirage/ocaml-mbr.git"
@@ -11,11 +12,14 @@ build: [
 ]
 depends: [
   "ocaml" {>= "4.08.0"}
-  "dune"
+  "dune" {>= "3.4.0"}
   "lwt"
   "cstruct" {>= "6.0.0"}
   "ppx_cstruct"
   "fmt" {with-test}
   "alcotest" {with-test}
+]
+conflicts: [
+  "result" {< "1.5"}
 ]
 synopsis: "A simple library for manipulating Master Boot Records"
