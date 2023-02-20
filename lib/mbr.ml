@@ -212,7 +212,7 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
   >>= fun () ->
   let copy_protected = get_mbr_copy_protected buf in
   (match copy_protected with
-  | 0 -> Ok (copy_protected = 0x5a5a)
+  | 0 | 0x5a5a -> Ok (copy_protected = 0x5a5a)
   | _ ->
       Error (Printf.sprintf "Invalid copy protection value %d" copy_protected))
   >>= fun () ->
