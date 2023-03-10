@@ -15,30 +15,18 @@ let print_mbr_fields mbr =
   (*  Printf.printf "    lba_begin: %ld\n" part.Mbr.Partition.first_absolute_sector_lba; *)
     Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors;
   ) mbr.Mbr.partitions
- 
 
-let create_mbr =
-  let disk_length_bytes = Int32.(mul (mul 16l 1024l) 1024l) in
-  let disk_length_sectors = Int32.(div disk_length_bytes 512l) in
-
-  let start_sector = 2048l in
-  let length_sectors = Int32.sub disk_length_sectors start_sector in
-
-  let partition1 =
-    match Mbr.Partition.make ~active:true ~ty:0x07 start_sector length_sectors with
-    | Ok part -> part
-    | Error msg ->
-        Printf.printf "Partition failed: %s\n" msg;
-        exit 1
-  in
-
-  let mbr_create = Mbr.make [ partition1 ] in
-  match mbr_create with
-  | Ok mbr -> mbr;
+let read_mbr mbr =
+  let ic = open_in_bin mbr in
+  let buf = Bytes.create Mbr.sizeof in
+  let () = really_input ic buf 0 Mbr.sizeof in
+  close_in ic;
+  match Mbr.unmarshal (Cstruct.of_bytes buf) with
+  | Ok mbr -> mbr
   | Error msg ->
-      Printf.printf "MBR failed: %s\n" msg;
+      Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
       exit 1
  
 let () =
-  let mbr = create_mbr in
+  let mbr = read_mbr "test.img" in
   print_mbr_fields mbr
