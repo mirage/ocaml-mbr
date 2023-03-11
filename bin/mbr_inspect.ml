@@ -7,12 +7,16 @@ let print_mbr_fields mbr =
   Printf.printf "  hours: %d\n" mbr.Mbr.hours;
   Printf.printf "  disk_signature: %ld\n" mbr.Mbr.disk_signature;
   List.iteri (fun i part ->
+    let chs_begin = part.Mbr.Partition.first_absolute_sector_chs in
+    let chs_end = part.Mbr.Partition.last_absolute_sector_chs in
     Printf.printf "  Partition %d:\n" (i + 1);
     Printf.printf "    bootable: %b\n" part.Mbr.Partition.active;
-  (*   Printf.printf "    chs_begin: %d %d %d\n" part.Mbr.Partition.first_absolute_sector_chs; *)
+    let {Mbr.Geometry.cylinders; Mbr.Geometry.heads; Mbr.Geometry.sectors} = chs_begin in
+    Printf.printf "    chs_begin: (cylinders: %d, heads: %d, sectors: %d)\n" cylinders heads sectors;
     Printf.printf "    ty: %02x\n" part.Mbr.Partition.ty;
-  (*  Printf.printf "    chs_end: %d %d %d\n" part.Mbr.Partition.last_absolute_sector_chs; *)
-  (*  Printf.printf "    lba_begin: %ld\n" part.Mbr.Partition.first_absolute_sector_lba; *)
+    let {Mbr.Geometry.cylinders; Mbr.Geometry.heads; Mbr.Geometry.sectors} = chs_end in
+    Printf.printf "    chs_end: (cylinders: %d, heads: %d, sectors: %d)\n" cylinders heads sectors;
+    Printf.printf "    lba_begin: %ld\n" part.Mbr.Partition.first_absolute_sector_lba;
     Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors;
   ) mbr.Mbr.partitions
 
