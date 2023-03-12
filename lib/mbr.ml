@@ -296,3 +296,42 @@ let marshal (buf : Cstruct.t) t =
 
 let sizeof = sizeof_mbr
 let default_partition_start = 2048l
+
+let print_mbr_fields mbr =
+  Printf.printf "MBR fields:\n";
+  Printf.printf "  bootstrap_code: %s\n" mbr.bootstrap_code;
+  Printf.printf "  original_physical_drive: %d\n" mbr.original_physical_drive;
+  Printf.printf "  seconds: %d\n" mbr.seconds;
+  Printf.printf "  minutes: %d\n" mbr.minutes;
+  Printf.printf "  hours: %d\n" mbr.hours;
+  Printf.printf "  disk_signature: %ld\n" mbr.disk_signature;
+  List.iteri
+    (fun i part ->
+      let chs_begin = part.Partition.first_absolute_sector_chs in
+      let chs_end = part.Partition.last_absolute_sector_chs in
+      Printf.printf "  Partition %d:\n" (i + 1);
+      Printf.printf "    bootable: %b\n" part.Partition.active;
+      let { Geometry.cylinders; Geometry.heads; Geometry.sectors } =
+        chs_begin
+      in
+      Printf.printf "    chs_begin: (cylinders: %d, heads: %d, sectors: %d)\n"
+        cylinders heads sectors;
+      Printf.printf "    ty: %02x\n" part.Partition.ty;
+      let { Geometry.cylinders; Geometry.heads; Geometry.sectors } = chs_end in
+      Printf.printf "    chs_end: (cylinders: %d, heads: %d, sectors: %d)\n"
+        cylinders heads sectors;
+      Printf.printf "    lba_begin: %ld\n"
+        part.Partition.first_absolute_sector_lba;
+      Printf.printf "    size_sectors: %ld\n" part.Partition.sectors)
+    mbr.partitions
+
+let read_mbr mbr =
+  let ic = open_in_bin mbr in
+  let buf = Bytes.create sizeof in
+  let () = really_input ic buf 0 sizeof in
+  close_in ic;
+  match unmarshal (Cstruct.of_bytes buf) with
+  | Ok mbr -> mbr
+  | Error msg ->
+      Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
+      exit 1
