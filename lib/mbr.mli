@@ -99,9 +99,3 @@ val sizeof : int
 
 val default_partition_start : int32
 (** default sector offset for first partition *)
-
-val print_mbr_fields : t -> unit
-(** print the contents of an MBR header *)
-
-val read_mbr : string -> t
-(** read an MBR and parse it's header **)
