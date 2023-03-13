@@ -1,7 +1,8 @@
 let print_mbr_fields mbr =
   Printf.printf "MBR fields:\n";
   Printf.printf "  bootstrap_code: %s\n" mbr.Mbr.bootstrap_code;
-  Printf.printf "  original_physical_drive: %d\n" mbr.Mbr.original_physical_drive;
+  Printf.printf "  original_physical_drive: %d\n"
+    mbr.Mbr.original_physical_drive;
   Printf.printf "  seconds: %d\n" mbr.Mbr.seconds;
   Printf.printf "  minutes: %d\n" mbr.Mbr.minutes;
   Printf.printf "  hours: %d\n" mbr.Mbr.hours;
@@ -18,7 +19,9 @@ let print_mbr_fields mbr =
       Printf.printf "    chs_begin: (cylinders: %d, heads: %d, sectors: %d)\n"
         cylinders heads sectors;
       Printf.printf "    ty: %02x\n" part.Mbr.Partition.ty;
-      let { Mbr.Geometry.cylinders; Mbr.Geometry.heads; Mbr.Geometry.sectors } = chs_end in
+      let { Mbr.Geometry.cylinders; Mbr.Geometry.heads; Mbr.Geometry.sectors } =
+        chs_end
+      in
       Printf.printf "    chs_end: (cylinders: %d, heads: %d, sectors: %d)\n"
         cylinders heads sectors;
       Printf.printf "    lba_begin: %ld\n"
