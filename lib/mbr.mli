@@ -83,7 +83,7 @@ type t = private {
   partitions : Partition.t list;
 }
 
-val make : Partition.t list -> (t, string) result
+val make : Partition.t list -> int32 -> (t, string) result
 (** [make partitions] constructs an MBR given a desired list of primary
     partitions. An [Error _] is returned if:
 

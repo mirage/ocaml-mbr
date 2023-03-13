@@ -161,8 +161,7 @@ type t = {
   disk_signature : int32;
   partitions : Partition.t list;
 }
-
-let make partitions =
+let make partitions disk_signature =
   (if List.length partitions <= 4 then Ok () else Error "Too many partitions")
   >>= fun () ->
   let num_active =
@@ -197,7 +196,7 @@ let make partitions =
   let seconds = 0 in
   let minutes = 0 in
   let hours = 0 in
-  let disk_signature = 0l in
+  
   Ok
     {
       bootstrap_code;
