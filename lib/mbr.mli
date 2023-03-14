@@ -58,8 +58,8 @@ module Partition : sig
   (** [make ?active ?ty start length] creates a partition starting at sector
       [start] and with length [length] sectors. If the active flag is set then
       the partition will be marked as active/bootable. If partition type [ty] is
-      given then this will determine the advertised filesystem type, by default
-      this is set to 6 (FAT16). [ty] must be between 1 and 255. *)
+      given then this will determine the advertised filesystem type.
+      [ty] must be between 1 and 255. *)
 
   val make' : ?active:bool -> ?ty:int -> int64 -> int64 -> (t, string) result
   (** [make' ?active ?ty sector_start size_sectors] is
