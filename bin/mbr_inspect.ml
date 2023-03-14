@@ -1,12 +1,12 @@
 let print_mbr_fields mbr =
   Printf.printf "MBR fields:\n";
-  Printf.printf "  bootstrap_code: %s\n" mbr.Mbr.bootstrap_code;
+  Printf.printf "  bootstrap_code: \"\"\n";
   Printf.printf "  original_physical_drive: %d\n"
     mbr.Mbr.original_physical_drive;
   Printf.printf "  seconds: %d\n" mbr.Mbr.seconds;
   Printf.printf "  minutes: %d\n" mbr.Mbr.minutes;
   Printf.printf "  hours: %d\n" mbr.Mbr.hours;
-  Printf.printf "  disk_signature: %ld\n" mbr.Mbr.disk_signature;
+  Printf.printf "  disk_signature: %lx\n" mbr.Mbr.disk_signature;
   List.iteri
     (fun i part ->
       let chs_begin = part.Mbr.Partition.first_absolute_sector_chs in
