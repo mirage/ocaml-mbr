@@ -41,7 +41,7 @@ let read_mbr mbr =
       exit 1
 
 let () =
-  let command = Sys.argv.(0) in
+  let command = Filename.basename Sys.argv.(0) in
   if Array.length Sys.argv < 2 then (
     Printf.printf
       "Inspect MBR Headers: \n\
