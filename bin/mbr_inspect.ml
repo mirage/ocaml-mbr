@@ -33,7 +33,7 @@ let print_mbr_fields print_bootstrap_code mbr =
       Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors)
     mbr.partitions
 
-let read_mbr print_bootstrap_code mbrs =
+let read_mbrs print_bootstrap_code mbrs =
   List.iter
     (fun mbr ->
       let ic = open_in_bin mbr in
@@ -47,7 +47,7 @@ let read_mbr print_bootstrap_code mbrs =
           exit 1)
     mbrs
 
-let mbrs = Arg.(non_empty & pos_all file [] & info [] ~docv:"[DISK IMAGES]")
+let mbrs = Arg.(non_empty & pos_all file [] & info [] ~docv:"disk_images")
 
 let print_bootstrap_code =
   let doc = "Print the bootstrap code of the disks images." in
@@ -58,7 +58,7 @@ let cmd =
     "Inspect the Master Boot Record (MBR) headers of one or more disk images."
   in
   let info = Cmd.info "mbr_inspect" ~version:"1.0.0" ~doc in
-  Cmd.v info Term.(const read_mbr $ print_bootstrap_code $ mbrs)
+  Cmd.v info Term.(const read_mbrs $ print_bootstrap_code $ mbrs)
 
 let main () = exit (Cmd.eval cmd)
 let () = main ()
