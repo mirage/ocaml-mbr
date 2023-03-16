@@ -47,7 +47,7 @@ let read_mbr print_bootstrap_code mbrs =
           exit 1)
     mbrs
 
-let mbrs = Arg.(non_empty & pos_all file [] & info [] ~docv:"MBR")
+let mbrs = Arg.(non_empty & pos_all file [] & info [] ~docv:"[DISK IMAGES]")
 
 let print_bootstrap_code =
   let doc = "Print the bootstrap code of the disks images." in
@@ -57,7 +57,7 @@ let cmd =
   let doc =
     "Inspect the Master Boot Record (MBR) headers of one or more disk images."
   in
-  let info = Cmd.info "MBR Inspect" ~version:"1.0.0" ~doc in
+  let info = Cmd.info "mbr_inspect" ~version:"1.0.0" ~doc in
   Cmd.v info Term.(const read_mbr $ print_bootstrap_code $ mbrs)
 
 let main () = exit (Cmd.eval cmd)
