@@ -1,6 +1,9 @@
 let print_mbr_fields mbr =
+  let bootstrap_code =
+    Cstruct.to_hex_string (Cstruct.of_string mbr.Mbr.bootstrap_code)
+  in
   Printf.printf "MBR fields:\n";
-  Printf.printf "  bootstrap_code: \"\"\n";
+  Printf.printf "  bootstrap_code: %s\n" bootstrap_code;
   Printf.printf "  original_physical_drive: %d\n"
     mbr.Mbr.original_physical_drive;
   Printf.printf "  seconds: %d\n" mbr.Mbr.seconds;
