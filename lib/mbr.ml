@@ -161,7 +161,12 @@ type t = {
   disk_signature : int32;
   partitions : Partition.t list;
 }
-let make partitions disk_signature =
+let make ?disk_signature partitions =
+  let signature_msg = match disk_signature with
+    | Some signature -> Printf.sprintf "Disk signature is: %ld\n" signature
+    | None -> "No disk signature provided\n" in
+  print_endline signature_msg;
+  
   (if List.length partitions <= 4 then Ok () else Error "Too many partitions")
   >>= fun () ->
   let num_active =
@@ -204,7 +209,7 @@ let make partitions disk_signature =
       seconds;
       minutes;
       hours;
-      disk_signature;
+      disk_signature= (match disk_signature with Some s -> s | None -> 0l);
       partitions;
     }
 

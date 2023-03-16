@@ -79,7 +79,7 @@ type t = private {
   seconds : int;
   minutes : int;
   hours : int;
-  disk_signature : int32;
+  disk_signature : int32 option;
   partitions : Partition.t list;
 }
 
