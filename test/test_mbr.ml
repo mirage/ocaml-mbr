@@ -83,15 +83,15 @@ let test_make_too_many_partitions () =
 let test_make_overlapping () =
   let p1 = get_ok (Mbr.Partition.make ~partition_type:6 10l 10l) in
   let p2 = get_ok (Mbr.Partition.make ~partition_type:6 15l 10l) in
-  match (Mbr.make 6 [ p1; p2 ], Mbr.make 6 [ p2; p1 ]) with
+  match (Mbr.make [ p1; p2 ], Mbr.make [ p2; p1 ]) with
   | Ok _, _ | _, Ok _ -> Alcotest.fail "expected Error"
   | Error _, Error _ -> ()
 
 let test_make_sorted () =
   let p1 = get_ok (Mbr.Partition.make ~partition_type:6 10l 1l) in
   let p2 = get_ok (Mbr.Partition.make ~partition_type:6 11l 1l) in
-  let m1 = get_ok (Mbr.make ~partition_type:6 [ p1; p2 ]) in
-  let m2 = get_ok (Mbr.make ~partition_type:6 [ p2; p1 ]) in
+  let m1 = get_ok (Mbr.make [ p1; p2 ]) in
+  let m2 = get_ok (Mbr.make [ p2; p1 ]) in
   (* polymorphic compare :'( *)
   Alcotest.(
     check (list partition) "partitions equal" m1.partitions m2.partitions)

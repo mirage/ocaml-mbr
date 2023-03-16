@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
- let ( >>= ) = Result.bind
+let ( >>= ) = Result.bind
 
 module Geometry = struct
   type t = { cylinders : int; heads : int; sectors : int }
@@ -95,9 +95,8 @@ module Partition = struct
         logand sector_start 0xFFFF_FFFFL = sector_start
         && logand size_sectors 0xFFFF_FFFFL = size_sectors)
     then
-      let ty = ty in
-      let sector_start = Int64.to_int32(sector_start) in
-      let size_sectors = Int64.to_int32(size_sectors) in
+      let sector_start = Int64.to_int32 sector_start in
+      let size_sectors = Int64.to_int32 size_sectors in
       make ?active ~partition_type:ty 
         sector_start 
         size_sectors
