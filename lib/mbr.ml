@@ -162,10 +162,6 @@ type t = {
   partitions : Partition.t list;
 }
 let make ?disk_signature partitions =
-  let signature_msg = match disk_signature with
-    | Some signature -> Printf.sprintf "Disk signature is: %ld\n" signature
-    | None -> "No disk signature provided\n" in
-  print_endline signature_msg;
   
   (if List.length partitions <= 4 then Ok () else Error "Too many partitions")
   >>= fun () ->
