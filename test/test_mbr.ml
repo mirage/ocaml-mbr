@@ -34,7 +34,9 @@ let partition =
   (module Testable_partition : Alcotest.TESTABLE with type t = Mbr.Partition.t)
 
 let test_partition_make () =
-  ignore (get_ok (Mbr.Partition.make ~partition_type:6 Mbr.default_partition_start 2048l))
+  ignore
+    (get_ok
+       (Mbr.Partition.make ~partition_type:6 Mbr.default_partition_start 2048l))
 
 let test_partition_make_ty_0 () =
   match Mbr.Partition.make ~partition_type:0 Mbr.default_partition_start 0l with
@@ -42,7 +44,9 @@ let test_partition_make_ty_0 () =
   | Ok _ -> Alcotest.fail "expected Error"
 
 let test_partition_make_ty_256 () =
-  match Mbr.Partition.make ~partition_type:256 Mbr.default_partition_start 0l with
+  match
+    Mbr.Partition.make ~partition_type:256 Mbr.default_partition_start 0l
+  with
   | Error _ -> ()
   | Ok _ -> Alcotest.fail "expected Error"
 
@@ -60,18 +64,28 @@ let test_make_empty () =
 
 let test_make_too_many_partitions () =
   let r =
-    let* p1 = Mbr.Partition.make ~partition_type:6 Mbr.default_partition_start 1l in
+    let* p1 =
+      Mbr.Partition.make ~partition_type:6 Mbr.default_partition_start 1l
+    in
     let* p2 =
-      Mbr.Partition.make ~partition_type:6 (Int32.add Mbr.default_partition_start 1l) 1l
+      Mbr.Partition.make ~partition_type:6
+        (Int32.add Mbr.default_partition_start 1l)
+        1l
     in
     let* p3 =
-      Mbr.Partition.make ~partition_type:6 (Int32.add Mbr.default_partition_start 2l) 1l
+      Mbr.Partition.make ~partition_type:6
+        (Int32.add Mbr.default_partition_start 2l)
+        1l
     in
     let* p4 =
-      Mbr.Partition.make ~partition_type:6 (Int32.add Mbr.default_partition_start 3l) 1l
+      Mbr.Partition.make ~partition_type:6
+        (Int32.add Mbr.default_partition_start 3l)
+        1l
     in
     let* p5 =
-      Mbr.Partition.make ~partition_type:6 (Int32.add Mbr.default_partition_start 4l) 1l
+      Mbr.Partition.make ~partition_type:6
+        (Int32.add Mbr.default_partition_start 4l)
+        1l
     in
     Ok [ p1; p2; p3; p4; p5 ]
   in
