@@ -90,9 +90,9 @@ val make : ?disk_signature:int32 -> Partition.t list -> (t, string) result
 
     - The number of partitions exceeds four,
     - Any of the partitions overlap with each other or the first sector,
-    - More than one partition is marked as active (bootable). *)
+    - More than one partition is marked as active (bootable).
 
-(* [The optional argument [disk_signature] specifies the disk signature to be written in the MBR.
+    The optional argument [disk_signature] specifies the disk signature to be written in the MBR.
     If [disk_signature] is not provided, the default value of [0l] is used. *)
 
 val marshal : Cstruct.t -> t -> unit
