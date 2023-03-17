@@ -162,7 +162,7 @@ type t = {
   partitions : Partition.t list;
 }
 
-let make ?disk_signature partitions =
+let make ?(disk_signature=0l) partitions =
   (if List.length partitions <= 4 then Ok () else Error "Too many partitions")
   >>= fun () ->
   let num_active =
@@ -205,7 +205,7 @@ let make ?disk_signature partitions =
       seconds;
       minutes;
       hours;
-      disk_signature = (match disk_signature with Some s -> s | None -> 0l);
+      disk_signature;
       partitions;
     }
 
