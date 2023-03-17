@@ -84,6 +84,9 @@ type t = private {
 }
 
 val make : Partition.t list -> (t, string) result
+
+val make : ?disk_signature:int32 -> 'a list -> 'a
+
 (** [make partitions] constructs an MBR given a desired list of primary
     partitions. An [Error _] is returned if:
 
