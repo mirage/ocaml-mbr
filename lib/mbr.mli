@@ -83,16 +83,17 @@ type t = private {
   partitions : Partition.t list;
 }
 
-val make : Partition.t list -> (t, string) result
-
-val make : ?disk_signature:int32 -> 'a list -> 'a
+val make : ?disk_signature:int32->  Partition.t  list  -> (t, string) result
 
 (** [make partitions] constructs an MBR given a desired list of primary
-    partitions. An [Error _] is returned if:
-
+partitions. An [Error _] is returned if:
+    
     - The number of partitions exceeds four,
     - Any of the partitions overlap with each other or the first sector,
     - More than one partition is marked as active (bootable). *)
+    
+(* [The optional argument [disk_signature] specifies the disk signature to be written in the MBR.
+    If [disk_signature] is not provided, the default value of [0l] is used. *)
 
 val marshal : Cstruct.t -> t -> unit
 val unmarshal : Cstruct.t -> (t, string) result
