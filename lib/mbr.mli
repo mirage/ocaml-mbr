@@ -56,9 +56,9 @@ module Partition : sig
 
   val make :
     ?active:bool -> partition_type:int -> int32 -> int32 -> (t, string) result
-  (** [make ?active partition_type start length] creates a partition starting at sector
-      [start] and with length [length] sectors. If the active flag is set then
-      the partition will be marked as active/bootable. Partition type [ty]
+  (** [make ?active partition_type start length] creates a partition starting at
+      sector [start] and with length [length] sectors. If the active flag is set
+      then the partition will be marked as active/bootable. Partition type [ty]
       determines the advertised filesystem type. [ty] must be between 1 and 255. *)
 
   val make' :
