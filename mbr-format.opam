@@ -15,6 +15,7 @@ depends: [
   "dune" {>= "3.4.0"}
   "lwt"
   "cstruct" {>= "6.0.0"}
+  "cstruct" {dev & >= "6.2.0"}
   "ppx_cstruct"
   "fmt" {with-test}
   "alcotest" {with-test}

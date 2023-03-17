@@ -1,6 +1,10 @@
-let print_mbr_fields mbr =
+open Cmdliner
+
+let print_mbr_fields print_bootstrap_code mbr =
   Printf.printf "MBR fields:\n";
-  Printf.printf "  bootstrap_code: \"\"\n";
+  if print_bootstrap_code then
+    Printf.printf "  bootstrap_code: %s\n"
+      (Cstruct.to_hex_string (Cstruct.of_string mbr.Mbr.bootstrap_code));
   Printf.printf "  original_physical_drive: %d\n"
     mbr.Mbr.original_physical_drive;
   Printf.printf "  seconds: %d\n" mbr.Mbr.seconds;
@@ -29,33 +33,32 @@ let print_mbr_fields mbr =
       Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors)
     mbr.partitions
 
-let read_mbr mbr =
-  let ic = open_in_bin mbr in
-  let buf = Bytes.create Mbr.sizeof in
-  let () = really_input ic buf 0 Mbr.sizeof in
-  close_in ic;
-  match Mbr.unmarshal (Cstruct.of_bytes buf) with
-  | Ok mbr -> mbr
-  | Error msg ->
-      Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
-      exit 1
+let read_mbrs print_bootstrap_code mbrs =
+  List.iter
+    (fun mbr ->
+      let ic = open_in_bin mbr in
+      let buf = Bytes.create Mbr.sizeof in
+      let () = really_input ic buf 0 Mbr.sizeof in
+      close_in ic;
+      match Mbr.unmarshal (Cstruct.of_bytes buf) with
+      | Ok mbr -> print_mbr_fields print_bootstrap_code mbr
+      | Error msg ->
+          Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
+          exit 1)
+    mbrs
 
-let () =
-  let command = Filename.basename Sys.argv.(0) in
-  if Array.length Sys.argv < 2 then (
-    Printf.printf
-      "Inspect MBR Headers: \n\
-      \ Usage %s <file1> [<file2> ...]\n\
-      \ You must pass in at least one MBR header\n"
-      command;
-    exit 1)
-  else
-    let mbr_files =
-      Array.of_list
-        (Array.to_list (Array.sub Sys.argv 1 (Array.length Sys.argv - 1)))
-    in
-    Array.iter
-      (fun mbr_file ->
-        let mbr = read_mbr mbr_file in
-        print_mbr_fields mbr)
-      mbr_files
+let mbrs = Arg.(non_empty & pos_all file [] & info [] ~docv:"disk_images")
+
+let print_bootstrap_code =
+  let doc = "Print the bootstrap code of the disks images." in
+  Arg.(value & flag & info [ "b"; "booststrap-code" ] ~doc)
+
+let cmd =
+  let doc =
+    "Inspect the Master Boot Record (MBR) headers of one or more disk images."
+  in
+  let info = Cmd.info "mbr_inspect" ~version:"1.0.0" ~doc in
+  Cmd.v info Term.(const read_mbrs $ print_bootstrap_code $ mbrs)
+
+let main () = exit (Cmd.eval cmd)
+let () = main ()
