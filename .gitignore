@@ -11,3 +11,4 @@ _build
 setup.*
 main.native
 test.native
+.vscode
