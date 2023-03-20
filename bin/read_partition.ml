@@ -7,3 +7,7 @@ let mbr =
 let partition_number =
   let doc = "The partition number to read" in
   Arg.(required & pos 1 (some int) None & info [] ~docv:"partition_number" ~doc)
+
+let output_to_file =
+  let doc = "Output partition contents to a file" in
+  Arg.(value & opt (some string) None & info [ "f"; "file" ] ~doc)
