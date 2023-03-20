@@ -11,3 +11,13 @@ let partition_number =
 let output_to_file =
   let doc = "Output partition contents to a file" in
   Arg.(value & opt (some string) None & info [ "f"; "file" ] ~doc)
+
+let cmd =
+  let doc = "Read the contents of a partition" in
+  let info = Cmd.info "read_partition" ~version:"1.0.0" ~doc in
+  Cmd.v info
+    Term.(
+      const extract_partition_data $ mbr $ partition_number $ output_to_file)
+
+let main () = exit (Cmd.eval cmd)
+let () = main ()
