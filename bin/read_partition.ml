@@ -34,6 +34,21 @@ let read_partition_data mbr start_sector num_sectors sector_size =
   close_in ic;
   buffer
 
+let extract_partition_data mbr partition_num output_file =
+  let partition = get_partition_info mbr partition_num in
+  let start_sector, num_sectors, sector_size =
+    calculate_partition_info partition
+  in
+  let buffer = read_partition_data mbr start_sector num_sectors sector_size in
+  match output_file with
+  | None -> print_string (Bytes.to_string buffer)
+  | Some file_path ->
+      let oc =
+        open_out_gen [ Open_wronly; Open_creat; Open_trunc ] 0o666 file_path
+      in
+      let () = output_bytes oc buffer in
+      close_out oc
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
