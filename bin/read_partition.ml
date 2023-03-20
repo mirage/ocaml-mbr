@@ -17,6 +17,14 @@ let get_partition_info mbr partition_num =
   | 1 | 2 | 3 | 4 -> List.nth mbr.Mbr.partitions (partition_num - 1)
   | _ -> failwith "Partition number must be between 1 and 4"
 
+let calculate_partition_info partition =
+  let start_sector =
+    Int32.to_int partition.Mbr.Partition.first_absolute_sector_lba
+  in
+  let num_sectors = Int32.to_int partition.Mbr.Partition.sectors in
+  let sector_size = 512 in
+  (start_sector, num_sectors, sector_size)
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
