@@ -25,6 +25,15 @@ let calculate_partition_info partition =
   let sector_size = 512 in
   (start_sector, num_sectors, sector_size)
 
+let read_partition_data mbr start_sector num_sectors sector_size =
+  let buffer = Bytes.create (num_sectors * sector_size) in
+  let ic = open_in_bin mbr in
+  let offset = start_sector * sector_size in
+  let () = seek_in ic offset in
+  let () = really_input ic buffer 0 (num_sectors * sector_size) in
+  close_in ic;
+  buffer
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
