@@ -163,7 +163,7 @@ type t = {
   partitions : Partition.t list;
 }
 
-let make partitions =
+let make ?(disk_signature = 0l) partitions =
   (if List.length partitions <= 4 then Ok () else Error "Too many partitions")
   >>= fun () ->
   let num_active =
@@ -198,7 +198,7 @@ let make partitions =
   let seconds = 0 in
   let minutes = 0 in
   let hours = 0 in
-  let disk_signature = 0l in
+
   Ok
     {
       bootstrap_code;
