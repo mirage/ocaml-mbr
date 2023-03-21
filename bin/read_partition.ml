@@ -25,28 +25,44 @@ let calculate_partition_info partition =
   let sector_size = 512 in
   (start_sector, num_sectors, sector_size)
 
-let read_partition_data mbr start_sector num_sectors sector_size =
-  let buffer = Bytes.create (num_sectors * sector_size) in
+let read_partition_data mbr start_sector num_sectors sector_size output =
+  let buffer_size = 1024 in
+  let buffer = Bytes.create buffer_size in
   let ic = open_in_bin mbr in
   let offset = start_sector * sector_size in
-  let () = seek_in ic offset in
-  let () = really_input ic buffer 0 (num_sectors * sector_size) in
-  close_in ic;
-  buffer
+  let rec loop remaining_bytes =
+    if remaining_bytes > 0 then
+      let bytes_to_read = min buffer_size remaining_bytes in
+      let () =
+        seek_in ic (offset + (num_sectors * sector_size) - remaining_bytes)
+      in
+      let () = really_input ic buffer 0 bytes_to_read in
+      let () = output buffer 0 bytes_to_read in
+      loop (remaining_bytes - bytes_to_read)
+    else ()
+  in
+  loop (num_sectors * sector_size);
+  close_in ic
+
+let writer output_channel buffer offset length =
+  output_bytes output_channel (Bytes.sub buffer offset length)
 
 let extract_partition_data mbr partition_num output_file =
   let partition = get_partition_info mbr partition_num in
   let start_sector, num_sectors, sector_size =
     calculate_partition_info partition
   in
-  let buffer = read_partition_data mbr start_sector num_sectors sector_size in
   match output_file with
-  | None -> print_string (Bytes.to_string buffer)
+  | None ->
+      read_partition_data mbr start_sector num_sectors sector_size
+        (writer stdout)
   | Some file_path ->
       let oc =
         open_out_gen [ Open_wronly; Open_creat; Open_trunc ] 0o666 file_path
       in
-      let () = output_bytes oc buffer in
+      let () =
+        read_partition_data mbr start_sector num_sectors sector_size (writer oc)
+      in
       close_out oc
 
 let mbr =
