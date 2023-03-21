@@ -26,7 +26,7 @@ let calculate_partition_info partition =
   (start_sector, num_sectors, sector_size)
 
 let read_partition_data mbr start_sector num_sectors sector_size output =
-  let buffer_size = 1024 in
+  let buffer_size = 4096 in
   let buffer = Bytes.create buffer_size in
   let ic = open_in_bin mbr in
   let offset = start_sector * sector_size in
