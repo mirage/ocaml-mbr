@@ -1,5 +1,16 @@
 open Cmdliner
 
+let read_mbr mbr =
+  let ic = open_in_bin mbr in
+  let buf = Bytes.create Mbr.sizeof in
+  let () = really_input ic buf 0 Mbr.sizeof in
+  close_in ic;
+  match Mbr.unmarshal (Cstruct.of_bytes buf) with
+  | Ok mbr -> (mbr, Mbr.sizeof)
+  | Error msg ->
+      Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
+      exit 1
+      
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
