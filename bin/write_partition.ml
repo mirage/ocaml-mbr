@@ -46,6 +46,24 @@ let read_file file_path =
       close_in ic;
       raise exn
 
+let write_to_partition mbr partition_number input_data =
+  let partition = get_partition_info mbr partition_number in
+  let start_sector, num_sectors, sector_size =
+    calculate_partition_info partition
+  in
+  let buffer =
+    match input_data with
+    | None -> Bytes.of_string (read_line ())
+    | Some file_path ->
+        read_file file_path |> Bytes.of_string (* Convert buffer to bytes *)
+  in
+  let output_buffer = Bytes.create (num_sectors * sector_size) in
+  let input_buffer_size = Bytes.length buffer in
+  if input_buffer_size > num_sectors * sector_size then
+    failwith "Input is too large for partition"
+  else Bytes.blit buffer 0 output_buffer 0 input_buffer_size;
+  write_partition_data_internal mbr start_sector output_buffer
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
