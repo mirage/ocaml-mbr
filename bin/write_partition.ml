@@ -54,7 +54,7 @@ let write_partition_data_internal mbr start_sector output_buffer =
   let () = seek_out fd pos in
   let () = output_bytes fd output_buffer in
   close_out fd
-  
+
 let write_to_partition mbr partition_number input_data =
   let partition = get_partition_info mbr partition_number in
   let start_sector, num_sectors, sector_size =
