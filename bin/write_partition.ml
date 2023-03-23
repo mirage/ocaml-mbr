@@ -10,10 +10,18 @@ let read_mbr mbr =
   | Error msg ->
       Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
       exit 1
-      
+
 let get_partition_info mbr partition_num =
   let mbr = read_mbr mbr |> fst in
   List.nth mbr.Mbr.partitions (partition_num - 1)
+
+let calculate_partition_info partition =
+  let start_sector =
+    Int32.to_int partition.Mbr.Partition.first_absolute_sector_lba
+  in
+  let num_sectors = Int32.to_int partition.Mbr.Partition.sectors in
+  let sector_size = 512 in
+  (start_sector, num_sectors, sector_size)
 
 let mbr =
   let doc = "The disk image containing the partition" in
