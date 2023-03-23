@@ -30,12 +30,10 @@ let read_partition_data mbr start_sector num_sectors sector_size output =
   let buffer = Bytes.create buffer_size in
   let ic = open_in_bin mbr in
   let offset = start_sector * sector_size in
+  let () = seek_in ic offset in
   let rec loop remaining_bytes =
     if remaining_bytes > 0 then
       let bytes_to_read = min buffer_size remaining_bytes in
-      let () =
-        seek_in ic (offset + (num_sectors * sector_size) - remaining_bytes)
-      in
       let () = really_input ic buffer 0 bytes_to_read in
       let () = output buffer 0 bytes_to_read in
       loop (remaining_bytes - bytes_to_read)
