@@ -29,6 +29,23 @@ let read_line () =
     line ^ "\n"
   with End_of_file -> ""
 
+let read_file file_path =
+  let ic = open_in_bin file_path in
+  let buf = Buffer.create 1024 in
+  try
+    while true do
+      let bytes = Bytes.create 1024 in
+      let bytes_read = input ic bytes 0 1024 in
+      if bytes_read = 0 then raise Exit
+      else Buffer.add_subbytes buf bytes 0 bytes_read
+    done;
+    assert false (* Unreachable *)
+  with
+  | Exit -> Buffer.contents buf
+  | exn ->
+      close_in ic;
+      raise exn
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
