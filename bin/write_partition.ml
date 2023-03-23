@@ -11,6 +11,10 @@ let read_mbr mbr =
       Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
       exit 1
       
+let get_partition_info mbr partition_num =
+  let mbr = read_mbr mbr |> fst in
+  List.nth mbr.Mbr.partitions (partition_num - 1)
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
