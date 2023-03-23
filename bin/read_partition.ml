@@ -35,7 +35,9 @@ let read_partition_data mbr start_sector num_sectors sector_size output =
     if remaining_bytes > 0 then
       let bytes_to_read = min buffer_size remaining_bytes in
       let () = really_input ic buffer 0 bytes_to_read in
-      let () = output buffer 0 bytes_to_read in
+      (* [Bytes.unsafe_to_string buffer] is safe here because [output] will not
+         keep the string once returned. *)
+      let () = output (Bytes.unsafe_to_string buffer) 0 bytes_to_read in
       loop (remaining_bytes - bytes_to_read)
     else ()
   in
@@ -43,7 +45,7 @@ let read_partition_data mbr start_sector num_sectors sector_size output =
   close_in ic
 
 let writer output_channel buffer offset length =
-  output_bytes output_channel (Bytes.sub buffer offset length)
+  output_substring output_channel buffer offset length
 
 let extract_partition_data mbr partition_num output_file =
   let partition = get_partition_info mbr partition_num in
