@@ -23,6 +23,12 @@ let calculate_partition_info partition =
   let sector_size = 512 in
   (start_sector, num_sectors, sector_size)
 
+let read_line () =
+  try
+    let line = input_line stdin in
+    line ^ "\n"
+  with End_of_file -> ""
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
