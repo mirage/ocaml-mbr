@@ -49,8 +49,7 @@ let read_file file_path =
 let write_partition_data_internal mbr start_sector output_buffer =
   let sector_size = 512 in
   let fd = open_out_gen [ Open_wronly; Open_creat; Open_binary ] 0o644 mbr in
-  let mbr_size = read_mbr mbr |> snd in
-  let pos = (start_sector * sector_size) + mbr_size in
+  let pos = start_sector * sector_size in
   let () = seek_out fd pos in
   let () = output_bytes fd output_buffer in
   close_out fd
