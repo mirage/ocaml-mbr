@@ -31,11 +31,11 @@ let read_line () =
 
 let read_file file_path =
   let ic = open_in_bin file_path in
-  let buf = Buffer.create 1024 in
+  let buf = Buffer.create 2048 in
   try
     while true do
-      let bytes = Bytes.create 1024 in
-      let bytes_read = input ic bytes 0 1024 in
+      let bytes = Bytes.create 2048 in
+      let bytes_read = input ic bytes 0 2048 in
       if bytes_read = 0 then raise Exit
       else Buffer.add_subbytes buf bytes 0 bytes_read
     done;
