@@ -105,10 +105,9 @@ module Partition = struct
   let _ = assert (sizeof_part = 16)
   let sizeof = sizeof_part
 
-  let get_part_ty v = Cstruct.get_uint8 v 4[@@ocaml.warning "-32"]
-  let get_part_status v = Cstruct.get_uint8 v 0[@@ocaml.warning "-32"]
-  let get_part_first_absolute_sector_chs src = Cstruct.sub src 1 3[@@ocaml.warning "-32"]
-  let set_part_status v x = Cstruct.set_uint8 v 0 x[@@ocaml.warning "-32"]
+
+
+
 
   let unmarshal buf =
     (if Cstruct.length buf < sizeof_part then
@@ -118,12 +117,15 @@ module Partition = struct
     else Ok ())
     >>= fun () ->
     let buf = Cstruct.sub buf 0 sizeof_part in
+    let get_part_ty v = Cstruct.get_uint8 v 4[@@ocaml.warning "-32"] in
     let ty = get_part_ty buf in
     if ty == 0x00 then
       if Cstruct.for_all (( = ) '\000') buf then Ok None
       else Error "Non-zero empty partition type"
     else
+      let get_part_status v = Cstruct.get_uint8 v 0[@@ocaml.warning "-32"] in
       let active = get_part_status buf = 0x80 in
+      let get_part_first_absolute_sector_chs src = Cstruct.sub src 1 3[@@ocaml.warning "-32"] in
       Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
       >>= fun first_absolute_sector_chs ->
         let get_part_last_absolute_sector_chs src = Cstruct.sub src 5 3[@@ocaml.warning "-32"] in
@@ -145,6 +147,7 @@ module Partition = struct
            })
 
   let marshal (buf : Cstruct.t) t =
+    let set_part_status v x = Cstruct.set_uint8 v 0 x[@@ocaml.warning "-32"] in
     set_part_status buf (if t.active then 0x80 else 0);
     let set_part_ty v x = Cstruct.set_uint8 v 4 x[@@ocaml.warning "-32"] in
     set_part_ty buf t.ty;
