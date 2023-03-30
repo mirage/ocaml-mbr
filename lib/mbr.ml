@@ -105,10 +105,6 @@ module Partition = struct
   let _ = assert (sizeof_part = 16)
   let sizeof = sizeof_part
 
-
-
-
-
   let unmarshal buf =
     (if Cstruct.length buf < sizeof_part then
      Error
