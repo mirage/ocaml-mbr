@@ -16,6 +16,8 @@
 
 let ( >>= ) = Result.bind
 
+let sizeof_part = 16
+
 module Geometry = struct
   type t = { cylinders : int; heads : int; sectors : int }
 
@@ -100,19 +102,13 @@ module Partition = struct
         (Int64.to_int32 size_sectors)
     else Error "partition parameters do not fit in int32"
 
-  [%%cstruct
-  type part = {
-    status : uint8_t;
-    first_absolute_sector_chs : uint8_t; [@len 3]
-    ty : uint8_t;
-    last_absolute_sector_chs : uint8_t; [@len 3]
-    first_absolute_sector_lba : uint32_t;
-    sectors : uint32_t;
-  }
-  [@@little_endian]]
-
   let _ = assert (sizeof_part = 16)
   let sizeof = sizeof_part
+
+  let get_part_ty v = Cstruct.get_uint8 v 4[@@ocaml.warning "-32"]
+  let get_part_status v = Cstruct.get_uint8 v 0[@@ocaml.warning "-32"]
+  let get_part_first_absolute_sector_chs src = Cstruct.sub src 1 3[@@ocaml.warning "-32"]
+  let set_part_status v x = Cstruct.set_uint8 v 0 x[@@ocaml.warning "-32"]
 
   let unmarshal buf =
     (if Cstruct.length buf < sizeof_part then
@@ -130,9 +126,12 @@ module Partition = struct
       let active = get_part_status buf = 0x80 in
       Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
       >>= fun first_absolute_sector_chs ->
+        let get_part_last_absolute_sector_chs src = Cstruct.sub src 5 3[@@ocaml.warning "-32"] in
       Geometry.unmarshal (get_part_last_absolute_sector_chs buf)
       >>= fun last_absolute_sector_chs ->
+      let get_part_first_absolute_sector_lba v = Cstruct.LE.get_uint32 v 8 [@@ocaml.warning "-32"] in
       let first_absolute_sector_lba = get_part_first_absolute_sector_lba buf in
+      let get_part_sectors v = Cstruct.LE.get_uint32 v 12[@@ocaml.warning "-32"] in
       let sectors = get_part_sectors buf in
       Ok
         (Some
@@ -147,8 +146,11 @@ module Partition = struct
 
   let marshal (buf : Cstruct.t) t =
     set_part_status buf (if t.active then 0x80 else 0);
+    let set_part_ty v x = Cstruct.set_uint8 v 4 x[@@ocaml.warning "-32"] in
     set_part_ty buf t.ty;
+    let set_part_first_absolute_sector_lba v x = Cstruct.LE.set_uint32 v 8 x [@@ocaml.warning "-32"] in
     set_part_first_absolute_sector_lba buf t.first_absolute_sector_lba;
+    let set_part_sectors v x = Cstruct.LE.set_uint32 v 12 x[@@ocaml.warning "-32"] in
     set_part_sectors buf t.sectors
 end
 
@@ -210,23 +212,8 @@ let make partitions =
     }
 
 (* "modern standard" MBR from wikipedia: *)
-[%%cstruct
-type mbr = {
-  bootstrap_code1 : uint8_t; [@len 218]
-  _zeroes_1 : uint8_t; [@len 2]
-  original_physical_drive : uint8_t;
-  seconds : uint8_t;
-  minutes : uint8_t;
-  hours : uint8_t;
-  bootstrap_code2 : uint8_t; [@len 216]
-  disk_signature : uint32_t;
-  _zeroes_2 : uint8_t; [@len 2]
-  partitions : uint8_t; [@len 64]
-  signature1 : uint8_t; (* 0x55 *)
-  signature2 : uint8_t; (* 0xaa *)
-}
-[@@little_endian]]
 
+let sizeof_mbr = 512[@@ocaml.warning "-32"]
 let _ = assert (sizeof_mbr = 512)
 
 let unmarshal (buf : Cstruct.t) : (t, string) result =
@@ -235,7 +222,9 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
      (Printf.sprintf "MBR too small: %d < %d" (Cstruct.length buf) sizeof_mbr)
   else Ok ())
   >>= fun () ->
+  let get_mbr_signature1 v = Cstruct.get_uint8 v 510[@@ocaml.warning "-32"] in
   let signature1 = get_mbr_signature1 buf in
+  let get_mbr_signature2 v = Cstruct.get_uint8 v 511[@@ocaml.warning "-32"] in
   let signature2 = get_mbr_signature2 buf in
   (if signature1 = 0x55 && signature2 = 0xaa then Ok ()
   else
@@ -243,15 +232,23 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
       (Printf.sprintf "Invalid signature: %02x %02x <> 0x55 0xaa" signature1
          signature2))
   >>= fun () ->
+  let get_mbr_bootstrap_code1 src = Cstruct.sub src 0 218[@@ocaml.warning "-32"] in
   let bootstrap_code =
+    let get_mbr_bootstrap_code2 src = Cstruct.sub src 224 216[@@ocaml.warning "-32"] in
     Cstruct.append (get_mbr_bootstrap_code1 buf) (get_mbr_bootstrap_code2 buf)
   in
   let bootstrap_code = Cstruct.to_string bootstrap_code in
+  let get_mbr_original_physical_drive v = Cstruct.get_uint8 v 220[@@ocaml.warning "-32"] in
   let original_physical_drive = get_mbr_original_physical_drive buf in
+  let get_mbr_seconds v = Cstruct.get_uint8 v 221[@@ocaml.warning "-32"] in
   let seconds = get_mbr_seconds buf in
+  let get_mbr_minutes v = Cstruct.get_uint8 v 222[@@ocaml.warning "-32"] in
   let minutes = get_mbr_minutes buf in
+  let get_mbr_hours v = Cstruct.get_uint8 v 223[@@ocaml.warning "-32"] in
   let hours = get_mbr_hours buf in
+  let get_mbr_disk_signature v = Cstruct.LE.get_uint32 v 440[@@ocaml.warning "-32"] in
   let disk_signature = get_mbr_disk_signature buf in
+  let get_mbr_partitions src = Cstruct.sub src 446 64[@@ocaml.warning "-32"] in
   let partitions = get_mbr_partitions buf in
   Partition.unmarshal (Cstruct.shift partitions (0 * Partition.sizeof))
   >>= fun p1 ->
@@ -276,13 +273,23 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
 let marshal (buf : Cstruct.t) t =
   let bootstrap_code1 = String.sub t.bootstrap_code 0 218
   and bootstrap_code2 = String.sub t.bootstrap_code 218 216 in
+  let set_mbr_bootstrap_code1 src srcoff dst =
+    Cstruct.blit_from_string src srcoff dst 0 218[@@ocaml.warning "-32"] in
   set_mbr_bootstrap_code1 bootstrap_code1 0 buf;
+  let set_mbr_bootstrap_code2 src srcoff dst =
+    Cstruct.blit_from_string src srcoff dst 224 216[@@ocaml.warning "-32"] in
   set_mbr_bootstrap_code2 bootstrap_code2 0 buf;
+  let set_mbr_original_physical_drive v x = Cstruct.set_uint8 v 220 x[@@ocaml.warning "-32"] in
   set_mbr_original_physical_drive buf t.original_physical_drive;
+  let set_mbr_seconds v x = Cstruct.set_uint8 v 221 x[@@ocaml.warning "-32"] in
   set_mbr_seconds buf t.seconds;
+  let set_mbr_minutes v x = Cstruct.set_uint8 v 222 x[@@ocaml.warning "-32"] in
   set_mbr_minutes buf t.minutes;
+  let set_mbr_hours v x = Cstruct.set_uint8 v 223 x[@@ocaml.warning "-32"] in
   set_mbr_hours buf t.hours;
+  let set_mbr_disk_signature v x = Cstruct.LE.set_uint32 v 440 x[@@ocaml.warning "-32"] in
   set_mbr_disk_signature buf t.disk_signature;
+  let get_mbr_partitions src = Cstruct.sub src 446 64[@@ocaml.warning "-32"] in
   let partitions = get_mbr_partitions buf in
   let _ =
     List.fold_left
@@ -291,7 +298,9 @@ let marshal (buf : Cstruct.t) t =
         Cstruct.shift buf Partition.sizeof)
       partitions t.partitions
   in
+  let set_mbr_signature1 v x = Cstruct.set_uint8 v 510 x[@@ocaml.warning "-32"] in
   set_mbr_signature1 buf 0x55;
+  let set_mbr_signature2 v x = Cstruct.set_uint8 v 511 x[@@ocaml.warning "-32"] in
   set_mbr_signature2 buf 0xaa
 
 let sizeof = sizeof_mbr
