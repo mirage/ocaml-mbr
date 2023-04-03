@@ -117,7 +117,7 @@ let input_data =
   Arg.(value & opt (some string) None & info [ "d"; "data" ] ~doc)
 
 let cmd =
-  let doc = "Read the contents of a partition" in
+  let doc = "Write data into a partition" in
   let info = Cmd.info "write_partition" ~version:"1.0.0" ~doc in
   Cmd.v info
     Term.(const write_to_partition $ mbr $ partition_number $ input_data)
