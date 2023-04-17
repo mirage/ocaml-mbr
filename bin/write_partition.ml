@@ -29,14 +29,13 @@ let copy ic oc max_bytes =
   let buf = Bytes.create buf_len in
   let rec loop i =
     let len = input ic buf 0 buf_len in
-    if len > 0 then
+    if len > 0 then (
       let len' = min len (max_bytes - i) in
       output oc buf 0 len';
       if i + len > max_bytes then
         failwith "Trying to write more than can fit in partition";
-      loop (i + len')
-    else
-      ()
+      loop (i + len'))
+    else ()
   in
   loop 0
 
@@ -46,11 +45,11 @@ let write_to_partition mbr partition_number input_data =
     calculate_partition_info partition
   in
   if start_sector = 0 then
-    Printf.ksprintf failwith "Writing to partition %d would overwrite the MBR header" partition_number;
+    Printf.ksprintf failwith
+      "Writing to partition %d would overwrite the MBR header" partition_number;
   let ic, data_size =
     match input_data with
-    | None ->
-        (stdin, None)
+    | None -> (stdin, None)
     | Some file_path ->
         let file_info = Unix.stat file_path in
         let data_size = file_info.st_size in
@@ -58,12 +57,14 @@ let write_to_partition mbr partition_number input_data =
         (ic, Some data_size)
   in
   let partition_size = num_sectors * sector_size in
-  Option.iter (fun data_size ->
-      Printf.printf "Total input size: %d\n" data_size)
+  Option.iter
+    (fun data_size -> Printf.printf "Total input size: %d\n" data_size)
     data_size;
   Printf.printf "Total Partition size: %d\n" partition_size;
-  Option.iter (fun data_size ->
-      if data_size > partition_size then failwith "Input is too large for partition")
+  Option.iter
+    (fun data_size ->
+      if data_size > partition_size then
+        failwith "Input is too large for partition")
     data_size;
   Printf.printf "\nBegin writing to partition:- \n";
   let oc = open_out_gen [ Open_wronly; Open_binary ] 0o644 mbr in
