@@ -41,6 +41,11 @@ let replace_partition_in_partition_table mbr partition_number new_partition =
   in
   List.mapi update_partition mbr.Mbr.partitions
 
+let make_new_mbr mbr new_partition_table =
+  match Mbr.make ~disk_signature:mbr.Mbr.disk_signature new_partition_table with
+  | Ok new_mbr -> new_mbr
+  | Error msg -> failwith msg
+
 let resize_partition disk partition_number _new_size =
   let disk = mbr in
   let mbr = read_mbr mbr |> fst in
@@ -51,7 +56,8 @@ let resize_partition disk partition_number _new_size =
   let new_partition_table =
     replace_partition_in_partition_table mbr partition_number new_partition
   in
-
+  let new_mbr = make_new_mbr mbr new_partition_table in
+  
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
