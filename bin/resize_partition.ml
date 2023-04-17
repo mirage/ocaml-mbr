@@ -57,6 +57,13 @@ let resize_partition disk partition_number _new_size =
     replace_partition_in_partition_table mbr partition_number new_partition
   in
   let new_mbr = make_new_mbr mbr new_partition_table in
+  let oc = open_out_gen [ Open_wronly; Open_binary ] 0o644 disk in
+  seek_out oc 0;
+  let buf = Cstruct.create Mbr.sizeof in
+  Mbr.marshal buf new_mbr;
+  let mbr_bytes = Cstruct.to_bytes buf in
+  output oc mbr_bytes 0 Mbr.sizeof;
+  close_out_noerr oc
   
 let mbr =
   let doc = "The disk image containing the partition" in
