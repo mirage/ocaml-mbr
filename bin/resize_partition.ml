@@ -34,7 +34,12 @@ let make_new_partition partition start_sector sector_size new_size =
   with
   | Ok new_partition -> new_partition
   | Error msg -> failwith msg
-  
+
+let replace_partition_in_partition_table mbr partition_number new_partition =
+  let update_partition i p =
+    if i = partition_number - 1 then new_partition else p
+  in
+  List.mapi update_partition mbr.Mbr.partitions
 
 let resize_partition disk partition_number _new_size =
   let disk = mbr in
@@ -43,6 +48,9 @@ let resize_partition disk partition_number _new_size =
   let start_sector, sector_size = calculate_partition_info partition in
   let new_partition =
     make_new_partition partition start_sector sector_size new_size
+  let new_partition_table =
+    replace_partition_in_partition_table mbr partition_number new_partition
+  in
 
 let mbr =
   let doc = "The disk image containing the partition" in
