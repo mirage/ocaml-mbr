@@ -11,9 +11,8 @@ let read_mbr mbr =
       Printf.printf "Failed to read MBR from %s: %s\n" mbr msg;
       exit 1
 
-let get_partition_info mbr partition_num =
-  let mbr = read_mbr mbr |> fst in
-  List.nth mbr.Mbr.partitions (partition_num - 1)
+let get_partition_info mbr partition_number =
+  List.nth mbr.Mbr.partitions (partition_number - 1)
 
 let calculate_partition_info partition =
   (* FIXME: Use Int32.unsigned_to_int *)
@@ -46,13 +45,14 @@ let make_new_mbr mbr new_partition_table =
   | Ok new_mbr -> new_mbr
   | Error msg -> failwith msg
 
-let resize_partition disk partition_number _new_size =
+let resize_partition mbr partition_number new_size =
   let disk = mbr in
   let mbr = read_mbr mbr |> fst in
   let partition = get_partition_info mbr partition_number in
   let start_sector, sector_size = calculate_partition_info partition in
   let new_partition =
     make_new_partition partition start_sector sector_size new_size
+  in
   let new_partition_table =
     replace_partition_in_partition_table mbr partition_number new_partition
   in
@@ -64,7 +64,7 @@ let resize_partition disk partition_number _new_size =
   let mbr_bytes = Cstruct.to_bytes buf in
   output oc mbr_bytes 0 Mbr.sizeof;
   close_out_noerr oc
-  
+
 let mbr =
   let doc = "The disk image containing the partition" in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
@@ -80,8 +80,7 @@ let new_size =
 let cmd =
   let doc = "Resize a partition" in
   let info = Cmd.info "resize_partition" ~version:"1.0.0" ~doc in
-  Cmd.v info
-    Term.(const resize_partition $ mbr $ partition_number $ new_size)
+  Cmd.v info Term.(const resize_partition $ mbr $ partition_number $ new_size)
 
 let main () = exit (Cmd.eval cmd)
 let () = main ()
