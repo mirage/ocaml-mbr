@@ -23,12 +23,26 @@ let calculate_partition_info partition =
   let sector_size = 512 in
   (start_sector, sector_size)
 
+let make_new_partition partition start_sector sector_size new_size =
+  let new_num_sectors = new_size / sector_size in
+  let new_end_sector = start_sector + new_num_sectors in
+  match
+    Mbr.Partition.make ~active:partition.Mbr.Partition.active
+      ~partition_type:partition.Mbr.Partition.ty
+      partition.Mbr.Partition.first_absolute_sector_lba
+      (Int32.of_int new_end_sector)
+  with
+  | Ok new_partition -> new_partition
+  | Error msg -> failwith msg
+  
+
 let resize_partition disk partition_number _new_size =
-  let partition = get_partition_info disk partition_number in
-  let _start_sector, _num_sectors, _sector_size =
-    calculate_partition_info partition
-  in
-  ()
+  let disk = mbr in
+  let mbr = read_mbr mbr |> fst in
+  let partition = get_partition_info mbr partition_number in
+  let start_sector, sector_size = calculate_partition_info partition in
+  let new_partition =
+    make_new_partition partition start_sector sector_size new_size
 
 let mbr =
   let doc = "The disk image containing the partition" in
