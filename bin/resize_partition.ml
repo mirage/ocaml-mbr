@@ -20,11 +20,9 @@ let calculate_partition_info partition =
   let start_sector =
     Int32.to_int partition.Mbr.Partition.first_absolute_sector_lba
   in
-  let num_sectors = Int32.to_int partition.Mbr.Partition.sectors in
   let sector_size = 512 in
-  (start_sector, num_sectors, sector_size)
+  (start_sector, sector_size)
 
-(*to be implemented*)
 let resize_partition disk partition_number _new_size =
   let partition = get_partition_info disk partition_number in
   let _start_sector, _num_sectors, _sector_size =
