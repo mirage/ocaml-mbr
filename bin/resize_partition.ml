@@ -23,16 +23,22 @@ let calculate_partition_info partition =
   (start_sector, sector_size)
 
 let make_new_partition partition start_sector sector_size new_size =
-  let new_num_sectors = new_size / sector_size in
-  let new_end_sector = start_sector + new_num_sectors in
-  match
-    Mbr.Partition.make ~active:partition.Mbr.Partition.active
-      ~partition_type:partition.Mbr.Partition.ty
-      partition.Mbr.Partition.first_absolute_sector_lba
-      (Int32.of_int new_end_sector)
-  with
-  | Ok new_partition -> new_partition
-  | Error msg -> failwith msg
+  if new_size mod sector_size <> 0 then
+    Printf.ksprintf failwith
+      "Partition cannot be resized. New size of %d bytes does not align to \
+       sectors."
+      new_size
+  else
+    let new_num_sectors = new_size / sector_size in
+    let new_end_sector = start_sector + new_num_sectors in
+    match
+      Mbr.Partition.make ~active:partition.Mbr.Partition.active
+        ~partition_type:partition.Mbr.Partition.ty
+        partition.Mbr.Partition.first_absolute_sector_lba
+        (Int32.of_int new_end_sector)
+    with
+    | Ok new_partition -> new_partition
+    | Error msg -> failwith msg
 
 let replace_partition_in_partition_table mbr partition_number new_partition =
   let update_partition i p =
