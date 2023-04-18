@@ -19,7 +19,9 @@ let calculate_partition_info partition =
   let start_sector =
     Int32.to_int partition.Mbr.Partition.first_absolute_sector_lba
   in
+  let num_sectors = Int32.to_int partition.Mbr.Partition.sectors in
   let sector_size = 512 in
+  Printf.printf "Current partition size: %d bytes\n" (num_sectors * sector_size);
   (start_sector, sector_size)
 
 let make_new_partition partition start_sector sector_size new_size =
@@ -31,6 +33,8 @@ let make_new_partition partition start_sector sector_size new_size =
   else
     let new_num_sectors = new_size / sector_size in
     let new_end_sector = start_sector + new_num_sectors in
+    Printf.printf "New partition size: %d bytes\n"
+      (new_num_sectors * sector_size);
     match
       Mbr.Partition.make ~active:partition.Mbr.Partition.active
         ~partition_type:partition.Mbr.Partition.ty
