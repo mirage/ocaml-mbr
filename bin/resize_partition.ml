@@ -28,8 +28,8 @@ let make_new_partition partition start_sector sector_size new_size =
   if new_size mod sector_size <> 0 then
     Printf.ksprintf failwith
       "Partition cannot be resized. New size of %d bytes does not align to \
-       sectors."
-      new_size
+       sectors. New size must be a multiple of %d"
+      new_size sector_size
   else
     let new_num_sectors = new_size / sector_size in
     let new_end_sector = start_sector + new_num_sectors in
@@ -50,6 +50,7 @@ let replace_partition_in_partition_table mbr partition_number new_partition =
   in
   List.mapi update_partition mbr.Mbr.partitions
 
+(* Mbr.make smart constructor checks for partition overlap, more than 1 active partitions and too many partitions *)
 let make_new_mbr mbr new_partition_table =
   match Mbr.make ~disk_signature:mbr.Mbr.disk_signature new_partition_table with
   | Ok new_mbr -> new_mbr
