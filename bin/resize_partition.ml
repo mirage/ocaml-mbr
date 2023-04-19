@@ -77,16 +77,19 @@ let resize_partition mbr partition_number new_size =
   close_out_noerr oc
 
 let mbr =
-  let doc = "The disk image containing the partition" in
+  let doc = "The disk image containing the partition." in
   Arg.(required & pos 0 (some file) None & info [] ~docv:"disk_image" ~doc)
 
 let partition_number =
-  let doc = "The partition number to resize" in
+  let doc = "The partition number to resize. Indexed from 1 to 4." in
   Arg.(required & pos 1 (some int) None & info [] ~docv:"partition_number" ~doc)
 
 let new_size =
-  let doc = "The new size of the partition" in
-  Arg.(required & pos 2 (some int) None & info [] ~docv:"new_Size" ~doc)
+  let doc =
+    "The new size of the partition in bytes. The size has to be aligned with \
+     the sector size, i.e. a multiple of 512."
+  in
+  Arg.(required & pos 2 (some int) None & info [] ~docv:"new_size" ~doc)
 
 let cmd =
   let doc = "Resize a partition" in
