@@ -21,10 +21,12 @@ module Geometry = struct
 
   let kib = 1024L
   let mib = Int64.mul kib 1024L
+  let sizeof = 3
 
   let unmarshal buf : (t, _) result =
-    (if Cstruct.length buf < 3 then
-     Error (Printf.sprintf "geometry too small: %d < %d" (Cstruct.length buf) 3)
+    (if Cstruct.length buf < sizeof then
+     Error
+       (Printf.sprintf "geometry too small: %d < %d" (Cstruct.length buf) sizeof)
     else Ok ())
     >>= fun () ->
     let heads = Cstruct.get_uint8 buf 0 in
@@ -101,40 +103,38 @@ module Partition = struct
       make ?active ~partition_type:ty sector_start size_sectors
     else Error "partition parameters do not fit in int32"
 
-  [%%cstruct
-  type part = {
-    status : uint8_t;
-    first_absolute_sector_chs : uint8_t; [@len 3]
-    ty : uint8_t;
-    last_absolute_sector_chs : uint8_t; [@len 3]
-    first_absolute_sector_lba : uint32_t;
-    sectors : uint32_t;
-  }
-  [@@little_endian]]
-
-  let _ = assert (sizeof_part = 16)
-  let sizeof = sizeof_part
+  let sizeof = 16
+  let status_offset = 0
+  let first_absolute_sector_chs_offset = 1
+  let ty_offset = 4
+  let last_absolute_sector_chs_offset = 5
+  let first_absolute_sector_lba_offset = 8
+  let sectors_offset = 12
 
   let unmarshal buf =
-    (if Cstruct.length buf < sizeof_part then
+    (if Cstruct.length buf < sizeof then
      Error
        (Printf.sprintf "partition entry too small: %d < %d" (Cstruct.length buf)
-          sizeof_part)
+          sizeof)
     else Ok ())
     >>= fun () ->
-    let buf = Cstruct.sub buf 0 sizeof_part in
-    let ty = get_part_ty buf in
+    let buf = Cstruct.sub buf 0 sizeof in
+    let ty = Cstruct.get_uint8 buf ty_offset in
     if ty == 0x00 then
       if Cstruct.for_all (( = ) '\000') buf then Ok None
       else Error "Non-zero empty partition type"
     else
-      let active = get_part_status buf = 0x80 in
-      Geometry.unmarshal (get_part_first_absolute_sector_chs buf)
+      let active = Cstruct.get_uint8 buf status_offset = 0x80 in
+      Geometry.unmarshal
+        (Cstruct.sub buf first_absolute_sector_chs_offset Geometry.sizeof)
       >>= fun first_absolute_sector_chs ->
-      Geometry.unmarshal (get_part_last_absolute_sector_chs buf)
+      Geometry.unmarshal
+        (Cstruct.sub buf last_absolute_sector_chs_offset Geometry.sizeof)
       >>= fun last_absolute_sector_chs ->
-      let first_absolute_sector_lba = get_part_first_absolute_sector_lba buf in
-      let sectors = get_part_sectors buf in
+      let first_absolute_sector_lba =
+        Cstruct.LE.get_uint32 buf first_absolute_sector_lba_offset
+      in
+      let sectors = Cstruct.LE.get_uint32 buf sectors_offset in
       Ok
         (Some
            {
@@ -147,10 +147,11 @@ module Partition = struct
            })
 
   let marshal (buf : Cstruct.t) t =
-    set_part_status buf (if t.active then 0x80 else 0);
-    set_part_ty buf t.ty;
-    set_part_first_absolute_sector_lba buf t.first_absolute_sector_lba;
-    set_part_sectors buf t.sectors
+    Cstruct.set_uint8 buf status_offset (if t.active then 0x80 else 0);
+    Cstruct.set_uint8 buf ty_offset t.ty;
+    Cstruct.LE.set_uint32 buf first_absolute_sector_lba_offset
+      t.first_absolute_sector_lba;
+    Cstruct.LE.set_uint32 buf sectors_offset t.sectors
 end
 
 type t = {
@@ -211,24 +212,28 @@ let make ?(disk_signature = 0l) partitions =
     }
 
 (* "modern standard" MBR from wikipedia: *)
-[%%cstruct
-type mbr = {
-  bootstrap_code1 : uint8_t; [@len 218]
-  _zeroes_1 : uint8_t; [@len 2]
-  original_physical_drive : uint8_t;
-  seconds : uint8_t;
-  minutes : uint8_t;
-  hours : uint8_t;
-  bootstrap_code2 : uint8_t; [@len 216]
-  disk_signature : uint32_t;
-  _zeroes_2 : uint8_t; [@len 2]
-  partitions : uint8_t; [@len 64]
-  signature1 : uint8_t; (* 0x55 *)
-  signature2 : uint8_t; (* 0xaa *)
-}
-[@@little_endian]]
+let sizeof_mbr = 512
+let bootstrap_code1_offset = 0
+let bootstrap_code1_len = 218
+let _zeroes_1_offset = 218
+let _zeroes_1_len = 2
+let original_physical_drive_offset = 220
+let seconds_offset = 221
+let minutes_offset = 222
+let hours_offset = 223
+let bootstrap_code2_offset = 224
+let bootstrap_code2_len = 216
+let disk_signature_offset = 440
+let _zeroes_2_offset = 444 (* also copy-protected *)
+let _zeroes_2_len = 2
+let partitions_offset = 446
 
-let _ = assert (sizeof_mbr = 512)
+let partition_offset n =
+  assert (n >= 0 && n < 4);
+  partitions_offset + (n * Partition.sizeof)
+
+let signature1_offset = 510
+let signature2_offset = 511
 
 let unmarshal (buf : Cstruct.t) : (t, string) result =
   (if Cstruct.length buf < sizeof_mbr then
@@ -236,8 +241,8 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
      (Printf.sprintf "MBR too small: %d < %d" (Cstruct.length buf) sizeof_mbr)
   else Ok ())
   >>= fun () ->
-  let signature1 = get_mbr_signature1 buf in
-  let signature2 = get_mbr_signature2 buf in
+  let signature1 = Cstruct.get_uint8 buf signature1_offset in
+  let signature2 = Cstruct.get_uint8 buf signature2_offset in
   (if signature1 = 0x55 && signature2 = 0xaa then Ok ()
   else
     Error
@@ -245,22 +250,26 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
          signature2))
   >>= fun () ->
   let bootstrap_code =
-    Cstruct.append (get_mbr_bootstrap_code1 buf) (get_mbr_bootstrap_code2 buf)
+    Cstruct.copyv
+      [
+        Cstruct.sub buf bootstrap_code1_offset bootstrap_code1_len;
+        Cstruct.sub buf bootstrap_code2_offset bootstrap_code2_len;
+      ]
   in
-  let bootstrap_code = Cstruct.to_string bootstrap_code in
-  let original_physical_drive = get_mbr_original_physical_drive buf in
-  let seconds = get_mbr_seconds buf in
-  let minutes = get_mbr_minutes buf in
-  let hours = get_mbr_hours buf in
-  let disk_signature = get_mbr_disk_signature buf in
-  let partitions = get_mbr_partitions buf in
-  Partition.unmarshal (Cstruct.shift partitions (0 * Partition.sizeof))
+  let original_physical_drive =
+    Cstruct.get_uint8 buf original_physical_drive_offset
+  in
+  let seconds = Cstruct.get_uint8 buf seconds_offset in
+  let minutes = Cstruct.get_uint8 buf minutes_offset in
+  let hours = Cstruct.get_uint8 buf hours_offset in
+  let disk_signature = Cstruct.LE.get_uint32 buf disk_signature_offset in
+  Partition.unmarshal (Cstruct.sub buf (partition_offset 0) Partition.sizeof)
   >>= fun p1 ->
-  Partition.unmarshal (Cstruct.shift partitions (1 * Partition.sizeof))
+  Partition.unmarshal (Cstruct.sub buf (partition_offset 1) Partition.sizeof)
   >>= fun p2 ->
-  Partition.unmarshal (Cstruct.shift partitions (2 * Partition.sizeof))
+  Partition.unmarshal (Cstruct.sub buf (partition_offset 2) Partition.sizeof)
   >>= fun p3 ->
-  Partition.unmarshal (Cstruct.shift partitions (3 * Partition.sizeof))
+  Partition.unmarshal (Cstruct.sub buf (partition_offset 3) Partition.sizeof)
   >>= fun p4 ->
   let partitions = List.filter_map Fun.id [ p1; p2; p3; p4 ] in
   Ok
@@ -275,25 +284,23 @@ let unmarshal (buf : Cstruct.t) : (t, string) result =
     }
 
 let marshal (buf : Cstruct.t) t =
-  let bootstrap_code1 = String.sub t.bootstrap_code 0 218
-  and bootstrap_code2 = String.sub t.bootstrap_code 218 216 in
-  set_mbr_bootstrap_code1 bootstrap_code1 0 buf;
-  set_mbr_bootstrap_code2 bootstrap_code2 0 buf;
-  set_mbr_original_physical_drive buf t.original_physical_drive;
-  set_mbr_seconds buf t.seconds;
-  set_mbr_minutes buf t.minutes;
-  set_mbr_hours buf t.hours;
-  set_mbr_disk_signature buf t.disk_signature;
-  let partitions = get_mbr_partitions buf in
-  let _ =
-    List.fold_left
-      (fun buf p ->
-        Partition.marshal buf p;
-        Cstruct.shift buf Partition.sizeof)
-      partitions t.partitions
-  in
-  set_mbr_signature1 buf 0x55;
-  set_mbr_signature2 buf 0xaa
+  Cstruct.blit_from_string t.bootstrap_code 0 buf bootstrap_code1_offset
+    bootstrap_code1_len;
+  Cstruct.blit_from_string t.bootstrap_code bootstrap_code1_len buf
+    bootstrap_code2_offset bootstrap_code2_len;
+  Cstruct.set_uint8 buf original_physical_drive_offset t.original_physical_drive;
+  Cstruct.set_uint8 buf seconds_offset t.seconds;
+  Cstruct.set_uint8 buf minutes_offset t.minutes;
+  Cstruct.set_uint8 buf hours_offset t.hours;
+  Cstruct.LE.set_uint32 buf disk_signature_offset t.disk_signature;
+  List.iteri
+    (fun i p ->
+      Partition.marshal
+        (Cstruct.sub buf (partition_offset i) Partition.sizeof)
+        p)
+    t.partitions;
+  Cstruct.set_uint8 buf signature1_offset 0x55;
+  Cstruct.set_uint8 buf signature2_offset 0xaa
 
 let sizeof = sizeof_mbr
 let default_partition_start = 2048l
