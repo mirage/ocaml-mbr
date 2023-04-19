@@ -104,12 +104,12 @@ module Partition = struct
     else Error "partition parameters do not fit in int32"
 
   let sizeof = 16
-  let part_status_offset = 0
-  let part_first_absolute_sector_chs_offset = 1
-  let part_ty_offset = 4
-  let part_last_absolute_sector_chs_offset = 5
-  let part_first_absolute_sector_lba_offset = 8
-  let part_sectors_offset = 12
+  let status_offset = 0
+  let first_absolute_sector_chs_offset = 1
+  let ty_offset = 4
+  let last_absolute_sector_chs_offset = 5
+  let first_absolute_sector_lba_offset = 8
+  let sectors_offset = 12
 
   let unmarshal buf =
     (if Cstruct.length buf < sizeof then
@@ -119,22 +119,22 @@ module Partition = struct
     else Ok ())
     >>= fun () ->
     let buf = Cstruct.sub buf 0 sizeof in
-    let ty = Cstruct.get_uint8 buf part_ty_offset in
+    let ty = Cstruct.get_uint8 buf ty_offset in
     if ty == 0x00 then
       if Cstruct.for_all (( = ) '\000') buf then Ok None
       else Error "Non-zero empty partition type"
     else
-      let active = Cstruct.get_uint8 buf part_status_offset = 0x80 in
+      let active = Cstruct.get_uint8 buf status_offset = 0x80 in
       Geometry.unmarshal
-        (Cstruct.sub buf part_first_absolute_sector_chs_offset Geometry.sizeof)
+        (Cstruct.sub buf first_absolute_sector_chs_offset Geometry.sizeof)
       >>= fun first_absolute_sector_chs ->
       Geometry.unmarshal
-        (Cstruct.sub buf part_last_absolute_sector_chs_offset Geometry.sizeof)
+        (Cstruct.sub buf last_absolute_sector_chs_offset Geometry.sizeof)
       >>= fun last_absolute_sector_chs ->
       let first_absolute_sector_lba =
-        Cstruct.LE.get_uint32 buf part_first_absolute_sector_lba_offset
+        Cstruct.LE.get_uint32 buf first_absolute_sector_lba_offset
       in
-      let sectors = Cstruct.LE.get_uint32 buf part_sectors_offset in
+      let sectors = Cstruct.LE.get_uint32 buf sectors_offset in
       Ok
         (Some
            {
@@ -147,11 +147,11 @@ module Partition = struct
            })
 
   let marshal (buf : Cstruct.t) t =
-    Cstruct.set_uint8 buf part_status_offset (if t.active then 0x80 else 0);
-    Cstruct.set_uint8 buf part_ty_offset t.ty;
-    Cstruct.LE.set_uint32 buf part_first_absolute_sector_lba_offset
+    Cstruct.set_uint8 buf status_offset (if t.active then 0x80 else 0);
+    Cstruct.set_uint8 buf ty_offset t.ty;
+    Cstruct.LE.set_uint32 buf first_absolute_sector_lba_offset
       t.first_absolute_sector_lba;
-    Cstruct.LE.set_uint32 buf part_sectors_offset t.sectors
+    Cstruct.LE.set_uint32 buf sectors_offset t.sectors
 end
 
 type t = {
