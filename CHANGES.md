@@ -1,3 +1,9 @@
+## Unreleased
+* Add optional argument `?disk_signature` to `Mbr.make` (@Burnleydev1, review by @reynir, #19)
+* Make the partition type a required argument to `Mbr.Partition.make` and rename it `~partition_type` (@AryanGodara, review by @reynir, #20)
+* Add tools for inspecting and modifying MBR, and reading/writing data to partitions. The command line tools are not installed as part of the opam package. The tools are `bin/mbr_inspect.exe`, `bin/read_partition.exe`, `bin/resize_partition.exe` and `bin/write_partition.exe`. (@PizieDust, review by @reynir, #22, #23, #24, #26)
+* Remove dependency on `ppx_cstruct` (@reynir, #27)
+
 ## v1.0 (2022-09-27)
 * Switch to dune
 * Remove `Mbr_partition` and `Mbr_lwt`
