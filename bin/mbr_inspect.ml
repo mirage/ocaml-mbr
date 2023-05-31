@@ -30,7 +30,9 @@ let print_mbr_fields print_bootstrap_code mbr =
         cylinders heads sectors;
       Printf.printf "    lba_begin: %ld\n"
         part.Mbr.Partition.first_absolute_sector_lba;
-      Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors)
+      Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors;
+      let partition_size = Int64.mul (Int64.of_int32 part.Mbr.Partition.sectors) (Int64.of_int Mbr.sizeof) in
+      Printf.printf "    Total Partition Size: %Ld bytes\n" partition_size)
     mbr.partitions
 
 let read_mbrs print_bootstrap_code mbrs =
