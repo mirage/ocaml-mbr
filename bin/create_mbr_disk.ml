@@ -3,7 +3,11 @@ open Cmdliner
 let create_mbr_disk destination partition_files =
   let sector_size = Mbr.sizeof in
   let num_partitions = List.length partition_files in
-  Printf.printf "Total partitions to create: %d\n" num_partitions;
+  if num_partitions > 4 then
+    failwith
+      "Too many partition files. Limit number of files to 4 as MBR supports at \
+       most 4 partitions"
+  else Printf.printf "Total partitions to create: %d\n" num_partitions;
 
   let partition_sizes =
     List.map (fun file -> (Unix.stat file).Unix.st_size) partition_files
