@@ -22,4 +22,4 @@ depends: [
 conflicts: [
   "result" {< "1.5"}
 ]
-synopsis: "A simple library for manipulating Master Boot Records"
+synopsis: "A library for manipulating Master Boot Records"
