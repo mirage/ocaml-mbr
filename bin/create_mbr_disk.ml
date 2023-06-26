@@ -27,7 +27,7 @@ let create_mbr_disk destination partition_files =
           let start_sector = (i + 1) * sector_size in
           let num_sectors = (size + sector_size - 1) / sector_size in
           match
-            Mbr.Partition.make ~active:false ~partition_type:1
+            Mbr.Partition.make ~active:false ~partition_type:6
               (Int32.of_int start_sector)
               (Int32.of_int num_sectors)
           with
