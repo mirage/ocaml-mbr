@@ -7,7 +7,7 @@ let create_mbr_disk destination partition_files =
     Printf.printf
       "Too many partition files. Limit number of files to 4 as MBR supports at \
        most 4 partitions";
-    exit 2)
+    exit 1)
   else (
     Printf.printf "Total partitions to create: %d\n" num_partitions;
     let partition_sizes =
@@ -18,12 +18,16 @@ let create_mbr_disk destination partition_files =
     let mbr_size = Mbr.sizeof in
     let total_size = partition_size + mbr_size in
 
-    Printf.printf "Total disk size: %d bytes\n" total_size;
-
     let partitions =
       List.mapi
         (fun i size ->
-          Printf.printf "Creating partition: %d" (i + 1);
+          if size mod 512 <> 0 then (
+            Printf.eprintf
+              "Partition %d will contain data that can't fill up the partiton. \
+               The data should have a size which is a multiple of %d\n"
+              (i + 1) mbr_size;
+            exit 1)
+          else Printf.printf "Creating partition: %d" (i + 1);
           let start_sector = (i + 1) * sector_size in
           let num_sectors = (size + sector_size - 1) / sector_size in
           match
@@ -39,6 +43,7 @@ let create_mbr_disk destination partition_files =
               exit 1)
         partition_sizes
     in
+
     (* Mbr.make smart constructor checks for partition overlap, more than 1 active partitions and too many partitions *)
     let mbr =
       match Mbr.make partitions with
