@@ -1,7 +1,7 @@
 ocaml-mbr
 =========
 
-A simple library for manipulating Master Boot Records. The
+A library for manipulating Master Boot Records. The
 primary purposes of this library are:
   1. to create bootable disk images creating
      [mirage](http://www.openmirage.org/) kernels
