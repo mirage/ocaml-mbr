@@ -11,6 +11,18 @@ let print_mbr_fields print_bootstrap_code mbr =
   Printf.printf "  minutes: %d\n" mbr.Mbr.minutes;
   Printf.printf "  hours: %d\n" mbr.Mbr.hours;
   Printf.printf "  disk_signature: %lx\n" mbr.Mbr.disk_signature;
+  let total_disk_size =
+    List.fold_left
+      (fun acc part ->
+        let partition_size =
+          Int64.mul
+            (Int64.of_int32 part.Mbr.Partition.sectors)
+            (Int64.of_int Mbr.sizeof)
+        in
+        Int64.add acc partition_size)
+      Int64.zero mbr.partitions
+  in
+  Printf.printf "  disk_size: %Ld bytes\n" total_disk_size;
   List.iteri
     (fun i part ->
       let chs_begin = part.Mbr.Partition.first_absolute_sector_chs in
@@ -30,7 +42,13 @@ let print_mbr_fields print_bootstrap_code mbr =
         cylinders heads sectors;
       Printf.printf "    lba_begin: %ld\n"
         part.Mbr.Partition.first_absolute_sector_lba;
-      Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors)
+      Printf.printf "    size_sectors: %ld\n" part.Mbr.Partition.sectors;
+      let partition_size =
+        Int64.mul
+          (Int64.of_int32 part.Mbr.Partition.sectors)
+          (Int64.of_int Mbr.sizeof)
+      in
+      Printf.printf "    partition_size: %Ld bytes\n" partition_size)
     mbr.partitions
 
 let read_mbrs print_bootstrap_code mbrs =
